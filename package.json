@@ -6,7 +6,10 @@
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "lint": "prettier --check .",
+    "format": "prettier --write .",
+    "type-check": "tsc --noEmit"
   },
   "private": true,
   "packageManager": "pnpm@10.27.0",
