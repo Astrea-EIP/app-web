@@ -11,31 +11,32 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 📥 Checkout repository
-        uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v6
 
-      - name: ⚙️ Setup pnpm
-        uses: pnpm/action-setup@v3
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v5
         with:
           version: 9
 
-      - name: ⚙️ Setup Node
-        uses: actions/setup-node@v4
+      - name: Setup Node
+        uses: actions/setup-node@v6
         with:
-          node-version: 20
+          node-version: 22
           cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
 
-      - name: 📦 Install dependencies
+      - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: 🔍 Lint
+      - name: Lint
         run: pnpm lint
 
-      - name: 🔎 Type check
+      - name: Type check
         run: pnpm type-check
 
-      - name: 🧪 Run tests
-        run: pnpm test
+      - name: Run tests
+        run: pnpm test -- --watch=false --browsers=ChromeHeadless
 
-      - name: 🏗️ Build
+      - name: Build
         run: pnpm build
