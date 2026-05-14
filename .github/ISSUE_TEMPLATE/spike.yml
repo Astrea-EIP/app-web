@@ -1,7 +1,7 @@
 name: Spike
 description: Investigate uncertainty before implementation
-title: "spike: "
-labels: ["type:spike", "area:web", "priority:P2-medium"]
+title: 'spike: '
+labels: ['type:spike', 'area:web', 'priority:P2-medium']
 body:
   - type: textarea
     id: question

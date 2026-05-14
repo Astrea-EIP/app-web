@@ -1,7 +1,7 @@
 name: Documentation
 description: Update repository or handbook documentation
-title: "docs: "
-labels: ["type:docs", "area:docs", "priority:P3-low"]
+title: 'docs: '
+labels: ['type:docs', 'area:docs', 'priority:P3-low']
 body:
   - type: textarea
     id: change

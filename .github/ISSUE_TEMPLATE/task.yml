@@ -1,7 +1,7 @@
 name: Task
 description: Define a focused technical work item
-title: "task: "
-labels: ["type:task", "area:web", "priority:P2-medium"]
+title: 'task: '
+labels: ['type:task', 'area:web', 'priority:P2-medium']
 body:
   - type: textarea
     id: objective

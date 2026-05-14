@@ -1,7 +1,7 @@
 name: Feature
 description: Request or define a user-facing capability
-title: "feat: "
-labels: ["type:feature", "area:web", "priority:P2-medium"]
+title: 'feat: '
+labels: ['type:feature', 'area:web', 'priority:P2-medium']
 body:
   - type: textarea
     id: outcome
