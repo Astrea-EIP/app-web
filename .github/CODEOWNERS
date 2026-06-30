@@ -1,8 +1,0 @@
-# Default ownership
-* @Astrea-EIP/team-web
-
-# GitHub workflows, repo automation, and CI config
-.github/ @Astrea-EIP/team-devops @CarlosSB2028
-
-# Documentation
-docs/ @CarlosSB2028
