@@ -1,0 +1,62 @@
+:root {
+  --color-primary: #4caf50;
+  --color-primary-hover: #43a047;
+  --color-primary-strong: #2e7d32;
+  --color-on-primary: #212529;
+  --color-accent: #ff9800;
+  --color-accent-strong: #b34700;
+  --color-on-accent: #212529;
+  --color-tertiary: #2b6cb0;
+  --color-ink: #212529;
+  --color-muted: #5b6560;
+  --color-border: #ddd8ce;
+  --color-border-strong: #7c847f;
+  --color-error: #b3261e;
+  --color-error-border: #b3261e;
+  --color-error-bg: #fdedeb;
+  --color-surface: #ffffff;
+  --color-page: #faf7f2;
+  --color-badge: #e8f5e9;
+  --color-map: #efeae0;
+  --color-brand-gradient-start: #43a047;
+  --color-brand-gradient-end: #ffa726;
+  --color-on-error: #ffffff;
+
+  --font-family-heading: 'Montserrat', sans-serif;
+  --font-family-body: 'Inter', sans-serif;
+  --font-size-petit: 12px;
+  --line-height-petit: 16px;
+  --font-size-petit-gras: 12px;
+  --line-height-petit-gras: 16px;
+  --spacing-12: 12px;
+  --spacing-20: 20px;
+  --spacing-32: 32px;
+  --spacing-40: 40px;
+  --spacing-56: 56px;
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+}
+
+.text-petit {
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-petit);
+  line-height: var(--line-height-petit);
+}
+
+.text-petit-gras {
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-petit-gras);
+  font-weight: 700;
+  line-height: var(--line-height-petit-gras);
+}
+
+.text-titre {
+  font-family: var(--font-family-heading);
+  font-weight: 600;
+}
+
+.text-corps {
+  font-family: var(--font-family-body);
+}
