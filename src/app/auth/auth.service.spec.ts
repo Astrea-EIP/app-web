@@ -13,10 +13,12 @@ describe('AuthService', () => {
     expect(service).toBeTruthy();
   });
 
-  it('getAnonymousToken should return mock token', (done) => {
-    service.getAnonymousToken().subscribe((res) => {
-      expect(res.accessToken).toContain('mock-token-');
-      done();
+  it('getAnonymousToken should return mock token', () => {
+    return new Promise((resolve) => {
+      service.getAnonymousToken().subscribe((res) => {
+        expect(res.accessToken).toContain('mock-token-');
+        resolve(true);
+      });
     });
   });
 });
