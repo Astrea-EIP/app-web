@@ -1,28 +1,26 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideHttpClient } from '@angular/common/http';
-import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { Observable, of, throwError } from 'rxjs';
+import { AuthService } from '../../auth/auth.service';
 import { Auth } from './auth';
 
 describe('Auth', () => {
   let component: Auth;
   let fixture: ComponentFixture<Auth>;
-  let httpTestingController: HttpTestingController;
+  let authService: { getAnonymousToken: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
+    authService = {
+      getAnonymousToken: vi.fn(),
+    };
     await TestBed.configureTestingModule({
       imports: [Auth],
-      providers: [provideHttpClient(), provideHttpClientTesting()],
+      providers: [{ provide: AuthService, useValue: authService }],
     }).compileComponents();
 
     fixture = TestBed.createComponent(Auth);
     component = fixture.componentInstance;
-    httpTestingController = TestBed.inject(HttpTestingController);
     fixture.detectChanges();
     await fixture.whenStable();
-  });
-
-  afterEach(() => {
-    httpTestingController.verify();
   });
 
   it('should create', () => {
@@ -30,20 +28,35 @@ describe('Auth', () => {
   });
 
   it('should show a successful authentication result', () => {
-    fixture.componentInstance.testAuthentication();
+    authService.getAnonymousToken.mockReturnValue(of({ accessToken: 'api-token' }));
 
-    const request = httpTestingController.expectOne('http://localhost:5217/v0/auth/anonymous');
-    request.flush({ accessToken: 'api-token' }, { status: 202, statusText: 'Accepted' });
+    component.testAuthentication();
+    fixture.detectChanges();
 
     expect(component.status()).toBe('success');
+    expect(fixture.nativeElement.textContent).toContain('auth works');
+    expect(authService.getAnonymousToken).toHaveBeenCalledOnce();
   });
 
   it('should show a failed authentication result', () => {
-    fixture.componentInstance.testAuthentication();
+    authService.getAnonymousToken.mockReturnValue(
+      throwError(() => new Error('Authentication service unavailable')),
+    );
 
-    const request = httpTestingController.expectOne('http://localhost:5217/v0/auth/anonymous');
-    request.flush({ error: 'Unavailable' }, { status: 503, statusText: 'Service Unavailable' });
+    component.testAuthentication();
+    fixture.detectChanges();
 
     expect(component.status()).toBe('error');
+    expect(fixture.nativeElement.textContent).toContain("auth doesn't work");
+  });
+
+  it('should show a loading status while authentication is pending', () => {
+    authService.getAnonymousToken.mockReturnValue(new Observable(() => undefined));
+
+    component.testAuthentication();
+    fixture.detectChanges();
+
+    expect(component.status()).toBe('loading');
+    expect(fixture.nativeElement.textContent).toContain('Contacting the backend...');
   });
 });
