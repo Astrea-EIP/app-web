@@ -1,1 +1,32 @@
-<p>auth works!</p>
+<main class="auth-check">
+  <p class="eyebrow">Connection check</p>
+  <h1>Test the API connection</h1>
+  <p class="description">
+    Check that the web application can request an anonymous token from the backend.
+  </p>
+
+  <button class="primary-button" type="button" (click)="testAuthentication()">
+    <span class="button-label">
+      @if (status() === 'loading') {
+        Testing connection...
+      } @else {
+        Test authentication
+      }
+    </span>
+  </button>
+
+  <p
+    class="status"
+    [class.status-success]="status() === 'success'"
+    [class.status-error]="status() === 'error'"
+    aria-live="polite"
+  >
+    @if (status() === 'success') {
+      auth works
+    } @else if (status() === 'error') {
+      auth doesn't work
+    } @else if (status() === 'loading') {
+      Contacting the backend...
+    }
+  </p>
+</main>
