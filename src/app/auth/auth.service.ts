@@ -1,17 +1,13 @@
-import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable, of } from 'rxjs';
-import { TokenResponse, AuthErrorResponse } from './auth.models';
-import { environment } from '../../environments/environment';
+import { inject, Injectable } from '@angular/core';
+import { Observable } from 'rxjs';
+import { TokenResponse } from './auth.models';
+import { AuthFetcher } from './auth.fetcher';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private readonly baseUrl = `${environment.apiUrl}/v0/auth`;
-
-  constructor(private http: HttpClient) {}
+  private readonly authFetcher = inject(AuthFetcher);
 
   getAnonymousToken(): Observable<TokenResponse> {
-    // Mock-up : fondation uniquement, conforme au contrat api-back (anonymous)
-    return of({ accessToken: 'mock-token-' + Date.now() });
+    return this.authFetcher.getAnonymousToken();
   }
 }
