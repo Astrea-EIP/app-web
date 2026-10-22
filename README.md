@@ -37,6 +37,21 @@ pnpm test --watch=false
 pnpm build
 ```
 
+### API environments
+
+The Angular build uses `src/environments/environment.ts` for local development
+and replaces it with the pre-production or production variant when using the
+corresponding build configuration:
+
+```bash
+pnpm exec ng build --configuration preprod
+pnpm exec ng build --configuration production
+```
+
+Local development targets `http://localhost:5217`. Pre-production and
+production use the same-origin API (`/v0/*`), which must be routed to
+`api-back` by the environment reverse proxy.
+
 ## Documentation
 
 Repository-specific documentation lives under `docs/`.
