@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { environment } from '../../environments/environment';
 import { AuthFetcher } from './auth.fetcher';
 
 describe('AuthFetcher', () => {
@@ -24,7 +25,7 @@ describe('AuthFetcher', () => {
       expect(response).toEqual({ accessToken: 'api-token' });
     });
 
-    const request = httpTestingController.expectOne('http://localhost:5217/v0/auth/anonymous');
+    const request = httpTestingController.expectOne(`${environment.apiUrl}/v0/auth/anonymous`);
     expect(request.request.method).toBe('GET');
     request.flush({ accessToken: 'api-token' }, { status: 202, statusText: 'Accepted' });
   });
@@ -38,7 +39,7 @@ describe('AuthFetcher', () => {
       },
     });
 
-    const request = httpTestingController.expectOne('http://localhost:5217/v0/auth/anonymous');
+    const request = httpTestingController.expectOne(`${environment.apiUrl}/v0/auth/anonymous`);
     request.flush(
       { error: 'Authentication service unavailable' },
       { status: 503, statusText: 'Service Unavailable' },
