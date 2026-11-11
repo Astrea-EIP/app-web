@@ -29,6 +29,12 @@
           },
           "configurations": {
             "production": {
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.prod.ts"
+                }
+              ],
               "budgets": [
                 {
                   "type": "initial",
@@ -41,6 +47,16 @@
                   "maximumError": "8kB"
                 }
               ],
+              "outputHashing": "all"
+            },
+            "preprod": {
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.preprod.ts"
+                }
+              ],
+              "optimization": true,
               "outputHashing": "all"
             },
             "development": {
@@ -56,6 +72,9 @@
           "configurations": {
             "production": {
               "buildTarget": "Astrea:build:production"
+            },
+            "preprod": {
+              "buildTarget": "Astrea:build:preprod"
             },
             "development": {
               "buildTarget": "Astrea:build:development"
