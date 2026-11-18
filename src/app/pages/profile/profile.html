@@ -1,1 +1,213 @@
-<p>profile works!</p>
+<section class="card">
+  @switch (step()) {
+    @case ('consent') {
+      <header class="card__header">
+        <h1 tabindex="-1">Votre profil de mobilité</h1>
+        <p>
+          Pour calculer des itinéraires adaptés, Astrea a besoin de savoir comment vous vous
+          déplacez. Cette information peut révéler un handicap : c’est une donnée de santé.
+        </p>
+      </header>
+
+      <div class="consent">
+        <label class="consent__label">
+          <input
+            class="consent__input"
+            type="checkbox"
+            [formControl]="consent"
+            [attr.aria-invalid]="consentError() ? 'true' : null"
+            [attr.aria-describedby]="consentError() ? 'consent-error' : null"
+          />
+          <span class="consent__box" aria-hidden="true">
+            <svg viewBox="0 0 16 16" width="16" height="16" focusable="false">
+              <path
+                d="M3 8.5 6.5 12 13 4.5"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </span>
+          <span>
+            J’accepte qu’Astrea utilise mon profil de mobilité pour calculer mes itinéraires. Je
+            peux retirer mon accord à tout moment dans Réglages.
+          </span>
+        </label>
+        @if (consentError(); as message) {
+          <p class="error" id="consent-error">
+            <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false">
+              <circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.5" />
+              <path
+                d="M8 4.5v4.5M8 11v.01"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+              />
+            </svg>
+            <span>{{ message }}</span>
+          </p>
+        }
+      </div>
+
+      <div class="actions">
+        <button appButton type="button" (click)="acceptConsent()">Continuer</button>
+        <button appButton type="button" variant="secondary" (click)="skip()">
+          Continuer sans profil
+        </button>
+      </div>
+    }
+
+    @case ('form') {
+      <form class="form" [formGroup]="form" (ngSubmit)="review()" novalidate>
+        <header class="card__header">
+          <h1 tabindex="-1">Votre profil de mobilité</h1>
+          <p>
+            Ces informations nous permettent de calculer des itinéraires réellement accessibles pour
+            vous. Vous pourrez les modifier à tout moment.
+          </p>
+        </header>
+
+        <section class="section" aria-labelledby="section-profile">
+          <h2 id="section-profile">Votre profil</h2>
+          <app-option-card-group
+            class="profile-group"
+            formControlName="profile"
+            ariaLabel="Votre profil"
+            [options]="profileOptions"
+            [columns]="2"
+            [invalid]="!!profileError()"
+            errorId="profile-error"
+          />
+          @if (profileError(); as message) {
+            <p class="error" id="profile-error">
+              <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false">
+                <circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.5" />
+                <path
+                  d="M8 4.5v4.5M8 11v.01"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  stroke-linecap="round"
+                />
+              </svg>
+              <span>{{ message }}</span>
+            </p>
+          }
+        </section>
+
+        @if (showWheelchair()) {
+          <section class="section" aria-labelledby="section-wheelchair">
+            <h2 id="section-wheelchair">Votre fauteuil</h2>
+            <app-text-field
+              class="model-field"
+              label="Modèle de fauteuil"
+              formControlName="wheelchairModel"
+              placeholder="Choisir un modèle"
+              [required]="true"
+              [error]="modelError()"
+            />
+            <p class="section__intro">
+              Largeur utilisée pour calculer l’itinéraire : {{ widthLabel }}
+            </p>
+            <p class="field-label" id="strength-label">Force physique</p>
+            <app-option-card-group
+              formControlName="strength"
+              ariaLabel="Force physique"
+              [options]="strengthOptions"
+              [columns]="3"
+            />
+            <app-setting-row formControlName="accompanied" label="Je suis accompagné(e)" />
+          </section>
+        }
+
+        @switch (selectedProfile()) {
+          @case ('assisted-walking') {
+            <section class="section" aria-labelledby="section-moves">
+              <h2 id="section-moves">Vos déplacements</h2>
+              <p class="section__intro">
+                Si cette option est désactivée, nous évitons tous les escaliers et les bordures
+                hautes.
+              </p>
+              <app-setting-row
+                formControlName="canClimbStairs"
+                label="Je peux monter des escaliers"
+              />
+            </section>
+          }
+          @case ('pedestrian') {
+            <section class="section" aria-labelledby="section-preferences">
+              <h2 id="section-preferences">Vos préférences de parcours</h2>
+              <p class="section__intro">
+                Choisissez ce qui compte pour vous : nous en tiendrons compte dans le calcul.
+              </p>
+              <app-option-card-group
+                formControlName="stairsOrSlopes"
+                ariaLabel="Escaliers ou pentes"
+                [options]="stairsOrSlopesOptions"
+                [columns]="3"
+              />
+              <app-setting-row
+                formControlName="preferWidePaths"
+                label="Privilégier les chemins larges"
+              />
+              <app-setting-row
+                formControlName="preferLitStreets"
+                label="Privilégier les rues éclairées"
+              />
+              <app-setting-row
+                formControlName="requireBenches"
+                label="Exiger des bancs sur le parcours"
+              />
+            </section>
+          }
+          @case ('visually-impaired') {
+            <section class="section" aria-labelledby="section-support">
+              <h2 id="section-support">Votre accompagnement</h2>
+              <p class="section__intro">
+                Si vous n’êtes pas accompagné(e), nous ne proposons que des parcours avec bandes de
+                guidage au sol.
+              </p>
+              <app-setting-row formControlName="accompanied" label="Je suis accompagné(e)" />
+            </section>
+          }
+        }
+
+        <button appButton type="submit">Enregistrer mon profil</button>
+      </form>
+    }
+
+    @case ('recap') {
+      <header class="card__header">
+        <h1 tabindex="-1">Récapitulatif de votre profil</h1>
+        <p>
+          Vérifiez vos paramètres avant de finaliser. Vous pourrez les modifier à tout moment dans
+          Réglages.
+        </p>
+      </header>
+
+      <section class="passport" aria-labelledby="passport-title">
+        <h2 id="passport-title">Passeport d’accessibilité Astrea</h2>
+        <dl>
+          @for (row of recapRows(); track row.label) {
+            <div class="passport__row">
+              <dt>{{ row.label }}</dt>
+              <dd>{{ row.value }}</dd>
+            </div>
+          }
+        </dl>
+      </section>
+
+      @if (saveFailed()) {
+        <app-alert tone="error" title="Profil non enregistré">
+          Votre profil n’a pas pu être enregistré sur cet appareil. Réessayez.
+        </app-alert>
+      }
+
+      <div class="actions">
+        <button appButton type="button" (click)="confirm()">Valider mon profil</button>
+        <button appButton type="button" variant="secondary" (click)="backToForm()">Retour</button>
+      </div>
+    }
+  }
+</section>
