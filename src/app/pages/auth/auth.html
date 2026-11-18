@@ -1,32 +1,158 @@
-<main class="auth-check">
-  <p class="eyebrow">Connection check</p>
-  <h1>Test the API connection</h1>
-  <p class="description">
-    Check that the web application can request an anonymous token from the backend.
-  </p>
+<div class="auth">
+  <section class="auth__brand" aria-label="Présentation d'Astrea">
+    <div class="auth__brand-mark">
+      <span class="auth__logo" aria-hidden="true"></span>
+      <p class="auth__brand-name">Astrea</p>
+    </div>
+    <p class="auth__brand-title">Mobilité accessible, simplifiée</p>
+    <p class="auth__brand-text">Des itinéraires adaptés à votre mobilité, calculés pour vous.</p>
+  </section>
 
-  <button class="primary-button" type="button" (click)="testAuthentication()">
-    <span class="button-label">
-      @if (status() === 'loading') {
-        Testing connection...
-      } @else {
-        Test authentication
+  <section class="auth__panel">
+    <div class="auth__form-wrap">
+      <header class="auth__header">
+        <h1 class="auth__title">
+          {{ mode() === 'login' ? 'Bon retour sur Astrea' : 'Créer votre compte Astrea' }}
+        </h1>
+        <p class="auth__subtitle">
+          {{
+            mode() === 'login'
+              ? 'Connectez-vous pour retrouver vos itinéraires.'
+              : 'Quelques informations pour personnaliser vos itinéraires.'
+          }}
+        </p>
+      </header>
+
+      <app-segmented-control
+        ariaLabel="Se connecter ou créer un compte"
+        [options]="modes"
+        [value]="mode()"
+        (valueChange)="setMode($event)"
+      />
+
+      @if (serviceError(); as message) {
+        <app-alert tone="error" title="Action impossible pour le moment">{{ message }}</app-alert>
       }
-    </span>
-  </button>
+      @if (info(); as message) {
+        <app-alert tone="info">{{ message }}</app-alert>
+      }
 
-  <p
-    class="status"
-    [class.status-success]="status() === 'success'"
-    [class.status-error]="status() === 'error'"
-    aria-live="polite"
-  >
-    @if (status() === 'success') {
-      auth works
-    } @else if (status() === 'error') {
-      auth doesn't work
-    } @else if (status() === 'loading') {
-      Contacting the backend...
-    }
-  </p>
-</main>
+      @if (mode() === 'login') {
+        <form class="auth__form" [formGroup]="loginForm" (ngSubmit)="submit()" novalidate>
+          <app-text-field
+            label="Adresse e-mail"
+            type="email"
+            autocomplete="email"
+            placeholder="nom@exemple.fr"
+            [required]="true"
+            [error]="error(loginForm, 'email')"
+            formControlName="email"
+          />
+          <app-text-field
+            label="Mot de passe"
+            type="password"
+            autocomplete="current-password"
+            [required]="true"
+            [error]="error(loginForm, 'password')"
+            formControlName="password"
+          />
+          <div class="auth__forgot">
+            <button class="auth__link" type="button" (click)="showForgotPassword()">
+              Mot de passe oublié ?
+            </button>
+          </div>
+          <button appButton type="submit" [loading]="status() === 'loading'">
+            {{ status() === 'loading' ? 'Connexion en cours…' : 'Se connecter' }}
+          </button>
+        </form>
+      } @else {
+        <form class="auth__form" [formGroup]="registerForm" (ngSubmit)="submit()" novalidate>
+          <app-text-field
+            label="Nom"
+            autocomplete="name"
+            placeholder="Prénom Nom"
+            [required]="true"
+            [error]="error(registerForm, 'name')"
+            formControlName="name"
+          />
+          <app-text-field
+            label="Adresse e-mail"
+            type="email"
+            autocomplete="email"
+            placeholder="nom@exemple.fr"
+            [required]="true"
+            [error]="error(registerForm, 'email')"
+            formControlName="email"
+          />
+          <app-text-field
+            label="Mot de passe"
+            type="password"
+            autocomplete="new-password"
+            hint="8 caractères minimum, avec au moins une lettre et un chiffre."
+            [required]="true"
+            [error]="error(registerForm, 'password')"
+            formControlName="password"
+          />
+          <app-text-field
+            label="Date de naissance"
+            type="date"
+            autocomplete="bday"
+            [required]="true"
+            [error]="error(registerForm, 'birthDate')"
+            formControlName="birthDate"
+          />
+
+          <div class="consent">
+            <label class="consent__label">
+              <input
+                class="consent__input"
+                type="checkbox"
+                formControlName="consent"
+                [attr.aria-invalid]="error(registerForm, 'consent') ? 'true' : null"
+                [attr.aria-describedby]="error(registerForm, 'consent') ? 'consent-error' : null"
+              />
+              <span>
+                J'accepte que ma localisation et mon profil de mobilité soient traités pour calculer
+                mes itinéraires.
+              </span>
+            </label>
+            @if (error(registerForm, 'consent'); as message) {
+              <p class="consent__error" id="consent-error">
+                <svg
+                  viewBox="0 0 16 16"
+                  width="16"
+                  height="16"
+                  aria-hidden="true"
+                  focusable="false"
+                >
+                  <circle
+                    cx="8"
+                    cy="8"
+                    r="7"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                  />
+                  <path
+                    d="M8 4.5v4.5M8 11v.01"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                    stroke-linecap="round"
+                  />
+                </svg>
+                <span>{{ message }}</span>
+              </p>
+            }
+          </div>
+
+          <button appButton type="submit" [loading]="status() === 'loading'">
+            {{ status() === 'loading' ? 'Création en cours…' : 'Créer mon compte' }}
+          </button>
+          <p class="auth__legal">
+            En continuant, vous acceptez nos Conditions générales d'utilisation.
+          </p>
+        </form>
+      }
+    </div>
+  </section>
+</div>
