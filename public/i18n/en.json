@@ -1,0 +1,9 @@
+{
+  "nav": {
+    "auth": "Sign in",
+    "profile": "Profile",
+    "tripEntry": "Trip entry",
+    "map": "Map",
+    "history": "History"
+  }
+}
