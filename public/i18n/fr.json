@@ -1,0 +1,9 @@
+{
+  "nav": {
+    "auth": "Authentification",
+    "profile": "Profil",
+    "tripEntry": "Saisie de trajet",
+    "map": "Carte",
+    "history": "Historique"
+  }
+}
