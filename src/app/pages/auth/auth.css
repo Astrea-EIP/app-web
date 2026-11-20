@@ -1,8 +1,11 @@
 :host {
-  display: block;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
 }
 
 .auth {
+  flex: 1;
   display: grid;
   grid-template-columns: minmax(0, 640fr) minmax(0, 800fr);
   min-height: 640px;
