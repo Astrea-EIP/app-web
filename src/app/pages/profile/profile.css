@@ -1,5 +1,6 @@
 :host {
   display: block;
+  padding: var(--spacing-40) var(--spacing-md);
 }
 
 .card {
