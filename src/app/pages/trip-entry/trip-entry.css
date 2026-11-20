@@ -1,10 +1,13 @@
 :host {
-  display: block;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
   font-family: var(--font-family-body);
   color: var(--color-ink);
 }
 
 .trip {
+  flex: 1;
   display: grid;
   grid-template-columns: minmax(0, 480px) minmax(0, 1fr);
   min-height: 560px;
