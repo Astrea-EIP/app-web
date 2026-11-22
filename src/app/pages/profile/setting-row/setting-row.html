@@ -1,0 +1,13 @@
+<label class="row">
+  <span class="row__label">{{ label() }}</span>
+  <input
+    class="row__input"
+    type="checkbox"
+    role="switch"
+    [checked]="checked()"
+    [disabled]="isDisabled()"
+    (change)="toggle($event)"
+    (blur)="blurred()"
+  />
+  <span class="row__track" aria-hidden="true"><span class="row__thumb"></span></span>
+</label>

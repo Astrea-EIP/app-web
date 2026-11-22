@@ -1,0 +1,117 @@
+:host {
+  display: block;
+}
+
+.group {
+  display: grid;
+  grid-template-columns: repeat(var(--option-columns, 2), minmax(0, 1fr));
+  gap: var(--spacing-md);
+}
+
+.card {
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-12);
+  min-height: 76px;
+  padding: var(--spacing-md);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md, 10px);
+  background: var(--color-surface);
+  cursor: pointer;
+  font-family: var(--font-family-body);
+}
+
+.card:not(.card--with-icon) {
+  align-items: flex-start;
+}
+
+.card--selected {
+  background: var(--color-badge);
+  border-color: var(--color-primary-strong);
+  box-shadow: inset 0 0 0 1px var(--color-primary-strong);
+}
+
+.card:focus-within {
+  outline: 3px solid var(--color-tertiary);
+  outline-offset: 2px;
+}
+
+/* Le radio natif reste focalisable et annoncé ; la carte entière est la cible tactile. */
+.card__input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.card__tile {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm, 8px);
+  background: var(--color-badge);
+  color: var(--color-primary-strong);
+}
+
+.card--selected .card__tile {
+  background: var(--color-surface);
+}
+
+.card__texts {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  min-width: 0;
+}
+
+.card__label {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--color-ink);
+}
+
+.card__description {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-muted);
+}
+
+.card__radio {
+  box-sizing: border-box;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border: 1.5px solid var(--color-border-strong);
+  border-radius: 50%;
+  background: var(--color-surface);
+}
+
+.card--selected .card__radio {
+  border-color: var(--color-primary-strong);
+  background: radial-gradient(
+    circle,
+    var(--color-primary-strong) 0 5px,
+    var(--color-surface) 5.5px
+  );
+}
+
+.card:has(.card__input:disabled) {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 560px) {
+  .group {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
