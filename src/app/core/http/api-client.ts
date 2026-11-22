@@ -39,6 +39,20 @@ export class ApiClient {
       .pipe(catchError((error: unknown) => this.toApiError(error)));
   }
 
+  /** Performs a `PUT` request. */
+  put<T>(path: string, body: unknown, options: RequestOptions = {}): Observable<T> {
+    return this.http
+      .put<T>(this.resolve(path), body, { headers: this.buildHeaders(options) })
+      .pipe(catchError((error: unknown) => this.toApiError(error)));
+  }
+
+  /** Performs a `DELETE` request. */
+  delete<T>(path: string, options: RequestOptions = {}): Observable<T> {
+    return this.http
+      .delete<T>(this.resolve(path), { headers: this.buildHeaders(options) })
+      .pipe(catchError((error: unknown) => this.toApiError(error)));
+  }
+
   /**
    * Joins `environment.apiUrl` with a path.
    *

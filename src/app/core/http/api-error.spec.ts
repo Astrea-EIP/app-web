@@ -29,6 +29,10 @@ describe('kindFromStatus', () => {
     expect(kindFromStatus(503)).toBe('server');
   });
 
+  it('maps 409 to conflict', () => {
+    expect(kindFromStatus(409)).toBe('conflict');
+  });
+
   it('falls back to unknown for unmapped statuses', () => {
     expect(kindFromStatus(418)).toBe('unknown');
   });

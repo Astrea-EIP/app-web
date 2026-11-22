@@ -141,4 +141,51 @@ describe('ApiClient', () => {
     expect(received?.kind).toBe('validation');
     expect(received?.message).toBe('The request was rejected.');
   });
+
+  it('sends a PUT body', () => {
+    client.put('v0/users/me/profile', { consent: true }).subscribe();
+
+    const request = httpMock.expectOne(`${BASE}/v0/users/me/profile`);
+    expect(request.request.method).toBe('PUT');
+    expect(request.request.body).toEqual({ consent: true });
+    request.flush({});
+  });
+
+  it('sends a DELETE request with the caller headers', () => {
+    client.delete('v0/users/me', { headers: { 'access-token': 'token-123' } }).subscribe();
+
+    const request = httpMock.expectOne(`${BASE}/v0/users/me`);
+    expect(request.request.method).toBe('DELETE');
+    expect(request.request.headers.get('access-token')).toBe('token-123');
+    request.flush(null, { status: 204, statusText: 'No Content' });
+  });
+
+  it('normalizes errors of PUT and DELETE like the other methods', () => {
+    const received: ApiError[] = [];
+    client.put('v0/users/me/profile', {}).subscribe({ error: (e: ApiError) => received.push(e) });
+    client.delete('v0/users/me').subscribe({ error: (e: ApiError) => received.push(e) });
+
+    httpMock
+      .expectOne((r) => r.method === 'PUT')
+      .flush({ error: 'Consent is required.' }, { status: 400, statusText: 'Bad Request' });
+    httpMock
+      .expectOne((r) => r.method === 'DELETE')
+      .flush(null, { status: 401, statusText: 'Unauthorized' });
+
+    expect(received.map((e) => e.kind)).toEqual(['validation', 'unauthorized']);
+    expect(received[0].message).toBe('Consent is required.');
+  });
+
+  it('maps a 409 to a conflict error carrying the backend message', () => {
+    let received: ApiError | undefined;
+    client.post('v0/auth/register', {}).subscribe({ error: (e: ApiError) => (received = e) });
+
+    httpMock
+      .expectOne(`${BASE}/v0/auth/register`)
+      .flush({ error: 'Email already used.' }, { status: 409, statusText: 'Conflict' });
+
+    expect(received?.kind).toBe('conflict');
+    expect(received?.status).toBe(409);
+    expect(received?.message).toBe('Email already used.');
+  });
 });

@@ -26,7 +26,7 @@ export interface ApiServerErrorPayload extends ApiErrorPayload {
  * (network failure, CORS rejection, offline).
  */
 export type ApiErrorKind =
-  'validation' | 'unauthorized' | 'not-found' | 'server' | 'network' | 'unknown';
+  'validation' | 'unauthorized' | 'not-found' | 'conflict' | 'server' | 'network' | 'unknown';
 
 /**
  * Normalized error surfaced by every client call, so callers never inspect a
@@ -47,6 +47,7 @@ const FALLBACK_MESSAGES: Record<ApiErrorKind, string> = {
   validation: 'The request was rejected.',
   unauthorized: 'Authentication is required.',
   'not-found': 'The requested resource was not found.',
+  conflict: 'The request conflicts with the current state of the resource.',
   server: 'The server encountered an error.',
   network: 'The server could not be reached.',
   unknown: 'An unexpected error occurred.',
@@ -70,6 +71,9 @@ export function kindFromStatus(status: number): ApiErrorKind {
   }
   if (status === 404) {
     return 'not-found';
+  }
+  if (status === 409) {
+    return 'conflict';
   }
   if (status >= 500) {
     return 'server';
