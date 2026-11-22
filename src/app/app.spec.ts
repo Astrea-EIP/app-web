@@ -3,12 +3,13 @@ import { provideRouter } from '@angular/router';
 
 import { App } from './app';
 import { routes } from './app.routes';
+import { provideTestI18n } from './i18n/testing';
 
 describe('App', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [App],
-      providers: [provideRouter(routes)],
+      providers: [provideRouter(routes), provideTestI18n()],
     }).compileComponents();
   });
 
