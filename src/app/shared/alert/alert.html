@@ -1,0 +1,21 @@
+<svg
+  class="alert__icon"
+  viewBox="0 0 24 24"
+  width="24"
+  height="24"
+  aria-hidden="true"
+  focusable="false"
+>
+  <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2" />
+  @if (tone() === 'error') {
+    <path d="M12 7v6M12 16.5v.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+  } @else {
+    <path d="M12 11v6M12 7.5v.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+  }
+</svg>
+<div class="alert__body">
+  @if (title()) {
+    <p class="alert__title">{{ title() }}</p>
+  }
+  <div class="alert__message"><ng-content /></div>
+</div>

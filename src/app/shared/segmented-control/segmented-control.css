@@ -1,0 +1,50 @@
+:host {
+  display: block;
+}
+
+.segmented {
+  display: flex;
+  gap: var(--spacing-xs);
+  box-sizing: border-box;
+  min-height: 52px;
+  padding: var(--spacing-xs);
+  border-radius: var(--radius-lg, 12px);
+  background: var(--color-map);
+}
+
+.segmented__segment {
+  position: relative;
+  display: flex;
+  flex: 1 1 0;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md, 10px);
+  color: var(--color-muted);
+  font-family: var(--font-family-body);
+  font-size: 14px;
+  line-height: 20px;
+  cursor: pointer;
+}
+
+.segmented__segment--selected {
+  background: var(--color-surface);
+  border-color: var(--color-border-strong);
+  color: var(--color-ink);
+  font-weight: 600;
+}
+
+/* Le radio natif reste dans l'arbre d'accessibilité mais n'est pas dessiné. */
+.segmented__input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.segmented__segment:has(.segmented__input:focus-visible) {
+  outline: 3px solid var(--color-tertiary);
+  outline-offset: 2px;
+}
