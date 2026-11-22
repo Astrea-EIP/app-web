@@ -39,7 +39,10 @@ export type WheelchairProfileId = 'manual-wheelchair' | 'electric-wheelchair';
 export type MobilityProfileData =
   | {
       profile: WheelchairProfileId;
+      /** Libellé du modèle choisi (marque et gamme du catalogue `GET /v0/wheelchairs`). */
       wheelchairModel: string;
+      /** Identifiant stable du modèle dans le catalogue, envoyé comme `wheelchair_model_id`. */
+      wheelchairModelId?: string;
       /** Largeur utilisée pour le calcul d'itinéraire, en mètres. */
       wheelchairWidthM: number;
       strength: PhysicalStrength;
