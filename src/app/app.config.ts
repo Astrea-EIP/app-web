@@ -3,7 +3,14 @@ import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/
 import { provideRouter } from '@angular/router';
 
 import { routes } from './app.routes';
+import { AccountService } from './auth/account.service';
+import { HttpAccountService } from './auth/http-account.service';
 
 export const appConfig: ApplicationConfig = {
-  providers: [provideBrowserGlobalErrorListeners(), provideHttpClient(), provideRouter(routes)],
+  providers: [
+    provideBrowserGlobalErrorListeners(),
+    provideHttpClient(),
+    provideRouter(routes),
+    { provide: AccountService, useExisting: HttpAccountService },
+  ],
 };
