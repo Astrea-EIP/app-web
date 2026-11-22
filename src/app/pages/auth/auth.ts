@@ -17,6 +17,7 @@ import {
 } from '@angular/forms';
 import { AccountError, AccountSession } from '../../auth/account.models';
 import { AccountService } from '../../auth/account.service';
+import { SessionService } from '../../auth/session.service';
 import { Alert } from '../../shared/alert/alert';
 import { Button } from '../../shared/button/button';
 import {
@@ -70,6 +71,7 @@ export function birthDateValidator(control: AbstractControl): ValidationErrors |
 })
 export class Auth {
   private readonly account = inject(AccountService);
+  private readonly session = inject(SessionService);
   private readonly injector = inject(Injector);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
@@ -190,7 +192,8 @@ export class Auth {
           });
 
     request$.subscribe({
-      next: (_session: AccountSession) => {
+      next: (account: AccountSession) => {
+        this.session.start(account.accessToken);
         this.status.set('success');
         this.info.set(
           this.mode() === 'login' ? 'Vous êtes connecté·e.' : 'Votre compte a bien été créé.',

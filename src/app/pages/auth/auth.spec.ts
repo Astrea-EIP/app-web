@@ -3,6 +3,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Observable, Subject, of, throwError } from 'rxjs';
 import { AccountError, AccountSession } from '../../auth/account.models';
 import { AccountService, UnavailableAccountService } from '../../auth/account.service';
+import { SessionService } from '../../auth/session.service';
 import { Auth } from './auth';
 
 describe('Auth', () => {
@@ -209,6 +210,28 @@ describe('Auth', () => {
         password: 'secret',
       });
       expect(root.textContent).toContain('Vous êtes connecté');
+    });
+
+    it('keeps the token in the session after a login', () => {
+      account.login.mockReturnValue(of({ accessToken: 'jeton-login' } satisfies AccountSession));
+      fillLogin();
+      submit();
+      expect(TestBed.inject(SessionService).accessToken()).toBe('jeton-login');
+    });
+
+    it('keeps the token in the session after a registration', () => {
+      account.register.mockReturnValue(of({ accessToken: 'jeton-inscription' }));
+      switchTo('Créer un compte');
+      fillRegister();
+      submit();
+      expect(TestBed.inject(SessionService).accessToken()).toBe('jeton-inscription');
+    });
+
+    it('does not start a session when the login fails', () => {
+      account.login.mockReturnValue(throwError(() => new AccountError('invalid-credentials')));
+      fillLogin();
+      submit();
+      expect(TestBed.inject(SessionService).isAuthenticated()).toBe(false);
     });
 
     it('calls register with trimmed name and consent', () => {
