@@ -37,8 +37,8 @@ Sans couche commune, chaque appelant devrait inspecter un `HttpErrorResponse`, d
 
 ## Décision
 
-- `ApiClient` (`core/http/api-client.ts`) : méthodes `get` et `post` typées ; résolution des chemins contre `environment.apiUrl` (slash initial et final tolérés) ; en-têtes optionnels fournis par l'appelant ; toute erreur normalisée en `ApiError`.
-- `ApiError` (`core/http/api-error.ts`) : union discriminée `validation | unauthorized | not-found | server | network | unknown`, avec `status`, `message`, `errorId` optionnel et corps brut pour le diagnostic. Reprend les champs `error` et `errorId` des DTO du back-end.
+- `ApiClient` (`core/http/api-client.ts`) : méthodes `get`, `post`, `put` et `delete` typées ; résolution des chemins contre `environment.apiUrl` (slash initial et final tolérés) ; en-têtes optionnels fournis par l'appelant ; toute erreur normalisée en `ApiError`.
+- `ApiError` (`core/http/api-error.ts`) : union discriminée `validation | unauthorized | not-found | conflict | server | network | unknown` (`conflict` : statut 409, utilisé par `POST /v0/auth/register` quand l'e-mail existe déjà), avec `status`, `message`, `errorId` optionnel et corps brut pour le diagnostic. Reprend les champs `error` et `errorId` des DTO du back-end.
 - Statut `0` : requête jamais parvenue au serveur (réseau, CORS, hors ligne) → `network`. Échec non HTTP (statut `-1`) → `unknown`, pour ne pas signaler à tort un serveur injoignable.
 - Un message vide ou absent dans le corps est remplacé par un libellé générique par `kind`.
 - Tests unitaires avec `provideHttpClientTesting` : succès, 400, 401, 404, 500, erreur réseau, message de repli, en-têtes.

@@ -9,10 +9,10 @@ Le code d'intégration à `api-back` vit sous `src/app/core/http/`.
 
 ## Structure
 
-| Chemin                    | Rôle                                           |
-| ------------------------- | ---------------------------------------------- |
-| `core/http/api-error.ts`  | Type `ApiError` et normalisation des échecs.   |
-| `core/http/api-client.ts` | `ApiClient` : requêtes typées vers `api-back`. |
+| Chemin                    | Rôle                                                                            |
+| ------------------------- | ------------------------------------------------------------------------------- |
+| `core/http/api-error.ts`  | Type `ApiError` et normalisation des échecs.                                    |
+| `core/http/api-client.ts` | `ApiClient` : requêtes `get`, `post`, `put` et `delete` typées vers `api-back`. |
 
 ## Configuration
 
@@ -54,6 +54,7 @@ this.api.get<Itinerary[]>('v0/itineraries').subscribe({
 | `validation`   | 400, 422 | Requête rejetée ; `message` reprend le champ `error` du back-end. |
 | `unauthorized` | 401, 403 | Jeton absent ou inconnu.                                          |
 | `not-found`    | 404      | Ressource inexistante.                                            |
+| `conflict`     | 409      | Conflit d'état (par exemple e-mail déjà utilisé à l'inscription). |
 | `server`       | 5xx      | `ServerErrorResponse` ; `errorId` est renseigné.                  |
 | `network`      | 0        | Requête jamais parvenue au serveur.                               |
 | `unknown`      | autres   | Non mappé.                                                        |
