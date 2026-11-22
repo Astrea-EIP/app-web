@@ -28,6 +28,11 @@ import { TextField } from '../../shared/text-field/text-field';
 export type AuthMode = 'login' | 'register';
 type Status = 'idle' | 'loading' | 'success' | 'error';
 
+/** Longueurs maximales du contrat d'api-back (docs/contracts/accounts.md). */
+export const NAME_MAX_LENGTH = 80;
+export const EMAIL_MAX_LENGTH = 254;
+export const PASSWORD_MAX_LENGTH = 128;
+
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 export function emailValidator(control: AbstractControl): ValidationErrors | null {
@@ -90,15 +95,22 @@ export class Auth {
   readonly registerForm = new FormGroup({
     name: new FormControl('', {
       nonNullable: true,
-      validators: [(c) => (String(c.value).trim() === '' ? { required: true } : null)],
+      validators: [
+        (c) => (String(c.value).trim() === '' ? { required: true } : null),
+        Validators.maxLength(NAME_MAX_LENGTH),
+      ],
     }),
     email: new FormControl('', {
       nonNullable: true,
-      validators: [Validators.required, emailValidator],
+      validators: [Validators.required, emailValidator, Validators.maxLength(EMAIL_MAX_LENGTH)],
     }),
     password: new FormControl('', {
       nonNullable: true,
-      validators: [Validators.required, passwordStrengthValidator],
+      validators: [
+        Validators.required,
+        passwordStrengthValidator,
+        Validators.maxLength(PASSWORD_MAX_LENGTH),
+      ],
     }),
     birthDate: new FormControl('', {
       nonNullable: true,
@@ -123,13 +135,18 @@ export class Auth {
     const errors = control.errors ?? {};
     switch (name) {
       case 'name':
-        return 'Saisissez votre nom.';
+        return errors['maxlength']
+          ? `Votre nom ne doit pas dépasser ${NAME_MAX_LENGTH} caractères.`
+          : 'Saisissez votre nom.';
       case 'email':
-        return errors['required']
-          ? 'Saisissez votre adresse e-mail.'
-          : 'Cette adresse e-mail semble invalide. Exemple : nom@exemple.fr.';
+        if (errors['required']) return 'Saisissez votre adresse e-mail.';
+        if (errors['maxlength'])
+          return `L'adresse e-mail ne doit pas dépasser ${EMAIL_MAX_LENGTH} caractères.`;
+        return 'Cette adresse e-mail semble invalide. Exemple : nom@exemple.fr.';
       case 'password':
         if (errors['required']) return 'Saisissez votre mot de passe.';
+        if (errors['maxlength'])
+          return `Le mot de passe ne doit pas dépasser ${PASSWORD_MAX_LENGTH} caractères.`;
         return 'Mot de passe trop faible : 8 caractères minimum, avec au moins une lettre et un chiffre.';
       case 'birthDate':
         return errors['required']

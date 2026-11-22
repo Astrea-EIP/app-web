@@ -152,6 +152,31 @@ describe('Auth', () => {
       expect(errors()).toEqual([]);
     });
 
+    it('rejects a name longer than 80 characters', () => {
+      const name = field('Nom');
+      type(name, 'a'.repeat(81));
+      blur(name);
+      expect(errors()[0]).toContain('80 caractères');
+      type(name, 'a'.repeat(80));
+      expect(errors()).toEqual([]);
+    });
+
+    it('rejects an e-mail longer than 254 characters', () => {
+      const email = field('Adresse e-mail');
+      type(email, `${'a'.repeat(250)}@b.fr`);
+      blur(email);
+      expect(errors()[0]).toContain('254 caractères');
+    });
+
+    it('rejects a password longer than 128 characters', () => {
+      const password = field('Mot de passe');
+      type(password, `${'a'.repeat(127)}12`);
+      blur(password);
+      expect(errors()[0]).toContain('128 caractères');
+      type(password, `${'a'.repeat(126)}12`);
+      expect(errors()).toEqual([]);
+    });
+
     it('rejects a future birth date', () => {
       const date = field('Date de naissance');
       type(date, '2999-01-01');
