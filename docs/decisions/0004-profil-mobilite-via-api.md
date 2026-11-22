@@ -8,7 +8,7 @@
 
 ## Contexte
 
-Le stockage local de la décision 0002 attendait un contrat d'api-back. Il existe maintenant : `docs/contracts/accounts.md` et `accounts.openapi.yaml` (api-back, PR #116 à #118) définissent `GET`, `PUT` et `DELETE /v0/users/me/profile`, ainsi que le catalogue `GET /v0/wheelchairs`.
+Le stockage local de la décision 0002 attendait un contrat d'api-back. Il existe maintenant : `docs/contracts/accounts.md` (api-back, PR #116 à #118, le fichier `accounts.openapi.yaml` provisoire étant remplacé par `docs/api.json`, généré) définit `GET`, `PUT` et `DELETE /v0/users/me/profile`, ainsi que le catalogue `GET /v0/wheelchairs`.
 
 Points du contrat qui touchent le web :
 
