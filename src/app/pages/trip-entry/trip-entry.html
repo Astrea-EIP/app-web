@@ -1,1 +1,134 @@
-<p>trip-entry works!</p>
+<div class="trip">
+  <section class="trip__panel" aria-labelledby="trip-title">
+    <div class="trip__intro">
+      <h2 id="trip-title" class="trip__title">Où allez-vous ?</h2>
+      <p class="trip__lead">
+        Indiquez un départ et une arrivée : nous calculons un itinéraire adapté à votre mobilité.
+      </p>
+    </div>
+
+    <form class="trip__form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <app-text-field
+        label="Départ"
+        formControlName="origin"
+        autocomplete="off"
+        placeholder="Adresse ou « lat,lng »"
+        [required]="true"
+        [error]="fieldError('origin')"
+      />
+      <app-text-field
+        label="Arrivée"
+        formControlName="destination"
+        autocomplete="off"
+        placeholder="Adresse ou « lat,lng »"
+        [required]="true"
+        [error]="fieldError('destination')"
+      />
+
+      <div class="trip__profile">
+        <span class="trip__badge">Profil de mobilité utilisé</span>
+        <a class="trip__link" routerLink="/profile">Modifier</a>
+      </div>
+
+      <button appButton type="submit" [loading]="loading()">
+        {{ loading() ? 'Calcul en cours…' : 'Calculer l’itinéraire' }}
+      </button>
+    </form>
+
+    @if (state().status === 'success') {
+      <app-alert tone="info" title="Itinéraire calculé">
+        Itinéraire adapté à votre profil de mobilité.
+      </app-alert>
+    }
+    @if (state().status === 'empty') {
+      <app-alert tone="info" title="Aucun résultat">
+        Le calcul s’est bien déroulé, mais aucun itinéraire n’est à afficher pour cette recherche.
+        Essayez avec un autre départ ou une autre arrivée.
+      </app-alert>
+    }
+
+    <p class="trip__sr" aria-live="polite">{{ liveMessage() }}</p>
+  </section>
+
+  <section class="trip__map" aria-label="Aperçu de la carte">
+    <!-- Illustration statique : ce n'est PAS une carte interactive (voir docs/decisions/0002). -->
+    <svg
+      class="trip__map-art"
+      viewBox="0 0 960 952"
+      preserveAspectRatio="xMidYMid slice"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <g class="trip__block">
+        <rect x="40" y="40" width="260" height="200" rx="8" />
+        <rect x="340" y="40" width="200" height="200" rx="8" />
+        <rect x="600" y="60" width="320" height="160" rx="8" />
+        <rect x="40" y="280" width="260" height="180" rx="8" />
+        <rect x="340" y="280" width="200" height="140" rx="8" />
+        <rect x="600" y="280" width="320" height="220" rx="8" />
+        <rect x="40" y="540" width="260" height="200" rx="8" />
+        <rect x="340" y="470" width="200" height="250" rx="8" />
+        <rect x="600" y="540" width="320" height="180" rx="8" />
+        <rect x="40" y="780" width="500" height="140" rx="8" />
+        <rect x="600" y="760" width="320" height="160" rx="8" />
+      </g>
+      <g class="trip__road">
+        <rect x="0" y="250" width="960" height="16" />
+        <rect x="0" y="460" width="960" height="16" />
+        <rect x="0" y="740" width="960" height="16" />
+        <rect x="310" y="0" width="16" height="952" />
+        <rect x="550" y="0" width="16" height="952" />
+      </g>
+      @if (state().status === 'success') {
+        <path
+          class="trip__route"
+          d="M140 720 L318 720 L318 468 L558 468 L558 258 L760 258 L760 170"
+        />
+        <g class="trip__pin trip__pin--start">
+          <circle cx="140" cy="720" r="18" />
+          <text x="140" y="725" text-anchor="middle">A</text>
+        </g>
+        <g class="trip__pin trip__pin--end">
+          <circle cx="760" cy="170" r="18" />
+          <text x="760" y="175" text-anchor="middle">B</text>
+        </g>
+      }
+    </svg>
+    <p class="trip__map-note">
+      Aperçu illustratif : la carte interactive n’est pas encore disponible.
+    </p>
+
+    @if (errorState(); as error) {
+      <div class="trip__message">
+        @switch (error.kind) {
+          @case ('uncovered-zone') {
+            <app-alert tone="error" title="Zone non couverte">
+              Le point d’arrivée est en dehors de la zone couverte par la carte, ou trop loin d’un
+              chemin.
+            </app-alert>
+            <button appButton type="button" variant="secondary" (click)="editSearch()">
+              Modifier la recherche
+            </button>
+          }
+          @case ('no-accessible-route') {
+            <app-alert tone="error" title="Aucun trajet accessible">
+              Aucun trajet adapté à ce profil de mobilité n’a été trouvé entre ces deux points.
+            </app-alert>
+            <a appButton variant="secondary" routerLink="/profile">Modifier mon profil</a>
+          }
+          @default {
+            <app-alert tone="error" title="Un problème est survenu">
+              Nous n’avons pas pu calculer l’itinéraire. Réessayez dans un instant.
+              @if (error.errorCode) {
+                <span class="trip__code">Code d’erreur : {{ error.errorCode }}</span>
+              }
+            </app-alert>
+            <button appButton type="button" variant="secondary" (click)="submit()">
+              Réessayer
+            </button>
+          }
+        }
+      </div>
+    }
+  </section>
+</div>
