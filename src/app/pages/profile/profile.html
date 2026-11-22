@@ -99,17 +99,85 @@
         @if (showWheelchair()) {
           <section class="section" aria-labelledby="section-wheelchair">
             <h2 id="section-wheelchair">Votre fauteuil</h2>
-            <app-text-field
-              class="model-field"
-              label="Modèle de fauteuil"
-              formControlName="wheelchairModel"
-              placeholder="Choisir un modèle"
-              [required]="true"
-              [error]="modelError()"
-            />
-            <p class="section__intro">
-              Largeur utilisée pour calculer l’itinéraire : {{ widthLabel }}
-            </p>
+            @if (catalogue.available()) {
+              <div class="select-field">
+                <label class="select-field__label" for="model-select">
+                  Modèle de fauteuil <span aria-hidden="true">*</span>
+                </label>
+                <select
+                  class="select-field__input"
+                  id="model-select"
+                  [class.select-field__input--error]="!manualEntry() && modelError()"
+                  [attr.aria-invalid]="!manualEntry() && modelError() ? 'true' : null"
+                  [attr.aria-describedby]="!manualEntry() && modelError() ? 'model-error' : null"
+                  (change)="chooseModel($any($event.target).value)"
+                >
+                  <option value="" [selected]="modelChoice() === ''">Choisir un modèle</option>
+                  @for (group of catalogueGroups(); track group.id) {
+                    <optgroup [label]="group.label">
+                      @for (model of group.models; track model.id) {
+                        <option [value]="model.id" [selected]="modelChoice() === model.id">
+                          {{ model.label }}
+                        </option>
+                      }
+                    </optgroup>
+                  }
+                  <option value="manual" [selected]="modelChoice() === 'manual'">
+                    Autre modèle (saisie manuelle)
+                  </option>
+                </select>
+                @if (!manualEntry() && modelError(); as message) {
+                  <p class="error" id="model-error">
+                    <svg
+                      viewBox="0 0 16 16"
+                      width="16"
+                      height="16"
+                      aria-hidden="true"
+                      focusable="false"
+                    >
+                      <circle
+                        cx="8"
+                        cy="8"
+                        r="7"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                      />
+                      <path
+                        d="M8 4.5v4.5M8 11v.01"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        stroke-linecap="round"
+                      />
+                    </svg>
+                    <span>{{ message }}</span>
+                  </p>
+                }
+              </div>
+            }
+            @if (manualEntry()) {
+              <app-text-field
+                class="model-field"
+                [label]="catalogue.available() ? 'Nom du modèle' : 'Modèle de fauteuil'"
+                formControlName="wheelchairModel"
+                [placeholder]="catalogue.available() ? 'Marque et gamme' : 'Choisir un modèle'"
+                [required]="true"
+                [error]="modelError()"
+              />
+              <app-text-field
+                class="width-field"
+                label="Largeur du fauteuil (en mètres)"
+                [formControl]="widthText"
+                placeholder="0,70"
+                hint="Mesurez la largeur totale, roues comprises. Elle sert à écarter les passages trop étroits."
+                [required]="true"
+                [error]="widthError()"
+              />
+            } @else {
+              <p class="section__intro">
+                Largeur utilisée pour calculer l’itinéraire : {{ widthLabel() }}
+              </p>
+            }
             <p class="field-label" id="strength-label">Force physique</p>
             <app-option-card-group
               formControlName="strength"
@@ -204,8 +272,21 @@
         </app-alert>
       }
 
+      @if (remoteError(); as message) {
+        <app-alert tone="error" title="Profil non enregistré sur votre compte">
+          {{ message }}
+        </app-alert>
+      }
+
       <div class="actions">
-        <button appButton type="button" (click)="confirm()">Valider mon profil</button>
+        <button appButton type="button" [disabled]="saving()" (click)="confirm()">
+          Valider mon profil
+        </button>
+        @if (remoteError() === sessionExpiredMessage) {
+          <button appButton type="button" variant="secondary" (click)="signIn()">
+            Me reconnecter
+          </button>
+        }
         <button appButton type="button" variant="secondary" (click)="backToForm()">Retour</button>
       </div>
     }

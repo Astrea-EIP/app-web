@@ -6,7 +6,9 @@ import {
   afterNextRender,
   computed,
   inject,
+  effect,
   signal,
+  untracked,
 } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import {
@@ -22,6 +24,8 @@ import { TextField } from '../../shared/text-field/text-field';
 import {
   DEFAULT_FORM_VALUE,
   DEFAULT_WHEELCHAIR_WIDTH_M,
+  WHEELCHAIR_WIDTH_MAX_M,
+  WHEELCHAIR_WIDTH_MIN_M,
   MobilityProfileData,
   MobilityProfileFormValue,
   PROFILE_OPTIONS,
@@ -36,6 +40,8 @@ import {
   toFormValue,
 } from '../../profile/mobility-profile.models';
 import { MobilityProfileService } from '../../profile/mobility-profile.service';
+import type { WheelchairModelOption } from '../../profile/mobility-profile.http';
+import { WheelchairCatalogue } from '../../profile/wheelchair-catalogue.service';
 import {
   OptionCardDefinition,
   OptionCardGroup,
@@ -57,6 +63,17 @@ const PROFILE_ICONS: Record<string, OptionIcon> = {
 export const MODEL_REQUIRED_MESSAGE =
   'Choisissez un modèle de fauteuil pour calculer un itinéraire adapté.';
 export const PROFILE_REQUIRED_MESSAGE = 'Choisissez votre profil de mobilité pour continuer.';
+export const WIDTH_MESSAGE = `Indiquez une largeur en mètres, entre ${WHEELCHAIR_WIDTH_MIN_M} et ${WHEELCHAIR_WIDTH_MAX_M} (par exemple 0,65).`;
+export const SESSION_EXPIRED_MESSAGE =
+  'Votre session a expiré. Reconnectez-vous pour enregistrer votre profil sur votre compte.';
+export const REMOTE_SAVE_FAILED_MESSAGE =
+  'Votre profil est enregistré sur cet appareil, mais pas encore sur votre compte. Réessayez.';
+const CATEGORY_LABELS: Readonly<Record<string, string>> = {
+  manual: 'Fauteuils manuels',
+  electric: 'Fauteuils électriques',
+};
+/** Valeur du sélecteur pour « Autre modèle » : l'utilisateur saisit le modèle et la largeur lui-même. */
+export const MANUAL_MODEL = 'manual';
 export const CONSENT_REQUIRED_MESSAGE =
   'Cochez la case pour accepter et continuer, ou choisissez « Continuer sans profil ».';
 
@@ -70,6 +87,7 @@ export const CONSENT_REQUIRED_MESSAGE =
 })
 export class Profile {
   private readonly service = inject(MobilityProfileService);
+  protected readonly catalogue = inject(WheelchairCatalogue);
   private readonly router = inject(Router);
   private readonly injector = inject(Injector);
   private readonly destroyRef = inject(DestroyRef);
@@ -105,7 +123,7 @@ export class Profile {
     },
   ];
   protected readonly modelMaxLength = WHEELCHAIR_MODEL_MAX_LENGTH;
-  protected readonly widthLabel = formatWidth(DEFAULT_WHEELCHAIR_WIDTH_M);
+  protected readonly sessionExpiredMessage = SESSION_EXPIRED_MESSAGE;
 
   readonly consent = new FormControl(false, {
     nonNullable: true,
@@ -118,6 +136,8 @@ export class Profile {
       Validators.required,
     ]),
     wheelchairModel: this.fb.control(DEFAULT_FORM_VALUE.wheelchairModel),
+    wheelchairModelId: this.fb.control(DEFAULT_FORM_VALUE.wheelchairModelId),
+    wheelchairWidthM: this.fb.control(DEFAULT_FORM_VALUE.wheelchairWidthM),
     strength: this.fb.control(DEFAULT_FORM_VALUE.strength),
     accompanied: this.fb.control(DEFAULT_FORM_VALUE.accompanied),
     canClimbStairs: this.fb.control(DEFAULT_FORM_VALUE.canClimbStairs),
@@ -130,6 +150,19 @@ export class Profile {
   readonly step = signal<ProfileStep>('consent');
   readonly draft = signal<MobilityProfileData | null>(null);
   readonly saveFailed = signal(false);
+  /** Message quand l'enregistrement sur le compte échoue alors que le profil est bien gardé en local. */
+  readonly remoteError = signal<string | null>(null);
+  readonly saving = signal(false);
+
+  /** Choix du sélecteur : '' (aucun), identifiant du catalogue, ou MANUAL_MODEL. */
+  readonly modelChoice = signal('');
+  /** Largeur saisie à la main (texte : virgule ou point acceptés), contrôlée seulement en saisie manuelle. */
+  readonly widthText = new FormControl(formatWidthInput(DEFAULT_WHEELCHAIR_WIDTH_M), {
+    nonNullable: true,
+  });
+  private readonly widthValue = toSignal(this.widthText.valueChanges, {
+    initialValue: this.widthText.value,
+  });
 
   private readonly consentAttempted = signal(false);
   private readonly submitted = signal(false);
@@ -142,6 +175,43 @@ export class Profile {
   private readonly consentValue = toSignal(this.consent.valueChanges, { initialValue: false });
 
   protected readonly showWheelchair = computed(() => isWheelchairProfile(this.selectedProfile()));
+
+  /** Modèle et largeur à saisir : sans catalogue (pas de compte, API injoignable) ou quand « Autre modèle » est choisi. */
+  protected readonly manualEntry = computed(
+    () => !this.catalogue.available() || this.modelChoice() === MANUAL_MODEL,
+  );
+
+  /** Largeur retenue pour le calcul, affichée quand elle vient du catalogue. */
+  protected readonly widthLabel = computed(() => {
+    this.formEvents();
+    return formatWidth(this.form.controls.wheelchairWidthM.value);
+  });
+
+  /** Modèles du catalogue regroupés par catégorie, pour les groupes du sélecteur. */
+  protected readonly catalogueGroups = computed(() => {
+    const groups = new Map<
+      string,
+      { id: string; label: string; models: WheelchairModelOption[] }
+    >();
+    for (const model of this.catalogue.models()) {
+      const group = groups.get(model.category) ?? {
+        id: model.category,
+        label: CATEGORY_LABELS[model.category] ?? model.category,
+        models: [],
+      };
+      group.models.push(model);
+      groups.set(model.category, group);
+    }
+    return [...groups.values()];
+  });
+
+  protected readonly widthError = computed(() => {
+    this.formEvents();
+    const touched = this.widthText.touched || this.submitted();
+    return this.manualEntry() && touched && parseWidth(this.widthValue()) === null
+      ? WIDTH_MESSAGE
+      : null;
+  });
 
   protected readonly profileError = computed(() => {
     this.formEvents();
@@ -176,13 +246,60 @@ export class Profile {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((profile) => this.applyProfileValidators(profile));
 
+    // Le catalogue n'est demandé que si l'écran fauteuil s'affiche (et seulement avec un compte).
+    effect(() => {
+      if (this.showWheelchair()) {
+        untracked(() => this.catalogue.load());
+      }
+    });
+
     // Profil déjà enregistré (avec son consentement) : on le recharge directement dans le formulaire.
     const stored = this.service.profile();
     if (stored) {
       this.consent.setValue(true);
-      this.form.setValue(toFormValue(stored));
+      this.restore(toFormValue(stored));
       this.step.set('form');
     }
+  }
+
+  private restore(value: MobilityProfileFormValue): void {
+    this.form.setValue({
+      profile: value.profile,
+      wheelchairModel: value.wheelchairModel,
+      wheelchairModelId: value.wheelchairModelId,
+      wheelchairWidthM: value.wheelchairWidthM,
+      strength: value.strength,
+      accompanied: value.accompanied,
+      canClimbStairs: value.canClimbStairs,
+      stairsOrSlopes: value.stairsOrSlopes,
+      preferWidePaths: value.preferWidePaths,
+      preferLitStreets: value.preferLitStreets,
+      requireBenches: value.requireBenches,
+    });
+    this.widthText.setValue(formatWidthInput(value.wheelchairWidthM));
+    this.modelChoice.set(
+      value.wheelchairModelId ? value.wheelchairModelId : value.wheelchairModel ? MANUAL_MODEL : '',
+    );
+  }
+
+  /** Choix dans la liste : un modèle du catalogue remplit le nom, l'identifiant et la largeur recommandée. */
+  protected chooseModel(choice: string): void {
+    this.modelChoice.set(choice);
+    const { wheelchairModel, wheelchairModelId, wheelchairWidthM } = this.form.controls;
+    const model = this.catalogue.find(choice);
+    if (model) {
+      wheelchairModel.setValue(model.label);
+      wheelchairModelId.setValue(model.id);
+      wheelchairWidthM.setValue(model.widthM);
+      this.widthText.setValue(formatWidthInput(model.widthM));
+    } else {
+      // « Autre modèle » ou aucun choix : l'ancien identifiant ne vaut plus, le nom reste à saisir.
+      wheelchairModelId.setValue('');
+      if (this.catalogue.models().some((m) => m.label === wheelchairModel.value)) {
+        wheelchairModel.setValue('');
+      }
+    }
+    wheelchairModel.markAsTouched();
   }
 
   /** Le modèle de fauteuil n'est obligatoire que pour les profils fauteuil. */
@@ -223,6 +340,15 @@ export class Profile {
       );
       return;
     }
+    if (isWheelchairProfile(this.form.controls.profile.value) && this.manualEntry()) {
+      const width = parseWidth(this.widthText.value);
+      this.widthText.markAsTouched();
+      if (width === null) {
+        this.focusAfterRender('.width-field input');
+        return;
+      }
+      this.form.controls.wheelchairWidthM.setValue(width);
+    }
     this.draft.set(buildProfileData(this.form.getRawValue()));
     this.goTo('recap');
   }
@@ -233,16 +359,32 @@ export class Profile {
 
   protected confirm(): void {
     const data = this.draft();
-    if (!data) {
+    if (!data || this.saving()) {
       return;
     }
+    this.saveFailed.set(false);
+    this.remoteError.set(null);
+    this.saving.set(true);
     try {
-      this.service.save(data, this.consent.value);
-      this.saveFailed.set(false);
-      void this.router.navigate(['/trip-entry']);
+      this.service.saveAndSync(data, this.consent.value).subscribe({
+        next: () => {
+          this.saving.set(false);
+          void this.router.navigate(['/trip-entry']);
+        },
+        error: (error: unknown) => {
+          this.saving.set(false);
+          const expired = (error as { kind?: string } | null)?.kind === 'unauthorized';
+          this.remoteError.set(expired ? SESSION_EXPIRED_MESSAGE : REMOTE_SAVE_FAILED_MESSAGE);
+        },
+      });
     } catch {
+      this.saving.set(false);
       this.saveFailed.set(true);
     }
+  }
+
+  protected signIn(): void {
+    void this.router.navigate(['/auth']);
   }
 
   private goTo(step: ProfileStep): void {
@@ -256,4 +398,18 @@ export class Profile {
       injector: this.injector,
     });
   }
+}
+
+/** Largeur en mètres saisie par l'utilisateur ('0,65' ou '0.65') ; null si absente ou hors des bornes de l'API. */
+export function parseWidth(text: string): number | null {
+  const normalized = text.trim().replace(',', '.');
+  if (!/^\d+(\.\d+)?$/.test(normalized)) {
+    return null;
+  }
+  const value = Number(normalized);
+  return value >= WHEELCHAIR_WIDTH_MIN_M && value <= WHEELCHAIR_WIDTH_MAX_M ? value : null;
+}
+
+function formatWidthInput(widthM: number): string {
+  return String(widthM).replace('.', ',');
 }

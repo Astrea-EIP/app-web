@@ -1,10 +1,18 @@
+import { provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
+import { environment } from '../../../environments/environment';
+import { SessionService } from '../../auth/session.service';
 import { MobilityProfileService } from '../../profile/mobility-profile.service';
 import { SESSION_STORAGE_KEY } from '../../profile/session-mobility-profile.store';
 import {
   CONSENT_REQUIRED_MESSAGE,
   MODEL_REQUIRED_MESSAGE,
+  REMOTE_SAVE_FAILED_MESSAGE,
+  SESSION_EXPIRED_MESSAGE,
+  WIDTH_MESSAGE,
+  parseWidth,
   PROFILE_REQUIRED_MESSAGE,
   Profile,
 } from './profile';
@@ -136,7 +144,7 @@ describe('Profile', () => {
       await choose('Fauteuil électrique');
       expect(text()).toContain('Votre fauteuil');
       expect(text()).toContain('Force physique');
-      expect(text()).toContain('Largeur utilisée pour calculer l’itinéraire : 0,70 m');
+      expect(text()).toContain('Largeur du fauteuil (en mètres)');
       await choose('Piéton');
       expect(text()).not.toContain('Votre fauteuil');
     });
@@ -260,6 +268,200 @@ describe('Profile', () => {
       );
       expect(root.querySelector<HTMLInputElement>('.model-field input')!.value).toBe('Küschall');
       expect(root.querySelector<HTMLInputElement>('app-setting-row input')!.checked).toBe(true);
+    });
+  });
+
+  describe('connected account', () => {
+    const BASE = environment.apiUrl.replace(/\/+$/, '');
+    const CATALOGUE = {
+      categories: [
+        {
+          id: 'manual',
+          name: 'Manual wheelchairs',
+          models: [
+            {
+              id: 'invacare-action-kuschall',
+              brand: 'Invacare',
+              range: 'Action',
+              recommended_wheelchair_width: 0.7,
+            },
+          ],
+        },
+      ],
+    };
+    let http: HttpTestingController;
+
+    const select = () => root.querySelector<HTMLSelectElement>('#model-select')!;
+    const pick = async (value: string) => {
+      select().value = value;
+      select().dispatchEvent(new Event('change'));
+      await settle();
+    };
+
+    /** Compte connecté : la page demande le catalogue, puis le profil du compte (absent : 404). */
+    async function connect(catalogue: 'ok' | 'down' = 'ok'): Promise<void> {
+      TestBed.configureTestingModule({
+        providers: [provideHttpClient(), provideHttpClientTesting()],
+      });
+      http = TestBed.inject(HttpTestingController);
+      TestBed.inject(SessionService).start('jeton');
+      await create();
+      const wheelchairs = http.expectOne(`${BASE}/v0/wheelchairs`);
+      expect(wheelchairs.request.headers.get('access-token')).toBe('jeton');
+      if (catalogue === 'ok') {
+        wheelchairs.flush(CATALOGUE);
+      } else {
+        wheelchairs.flush({ error: 'down' }, { status: 500, statusText: 'Server Error' });
+      }
+      await settle();
+      http
+        .expectOne(`${BASE}/v0/users/me/profile`)
+        .flush({ error: 'none' }, { status: 404, statusText: 'Not Found' });
+      await settle();
+    }
+
+    afterEach(() => http.verify());
+
+    it('offers the catalogue models and a manual option', async () => {
+      await connect();
+      await acceptConsent();
+      await choose('Fauteuil manuel');
+      expect(select().textContent).toContain('Invacare — Action');
+      expect(select().textContent).toContain('Autre modèle (saisie manuelle)');
+      expect(root.querySelector('.model-field')).toBeNull();
+    });
+
+    it('sends the catalogue id and its recommended width', async () => {
+      await connect();
+      await acceptConsent();
+      await choose('Fauteuil manuel');
+      await pick('invacare-action-kuschall');
+      expect(text()).toContain('Largeur utilisée pour calculer l’itinéraire : 0,70 m');
+      await click('Enregistrer mon profil');
+      expect(text()).toContain('Invacare — Action (0,70 m)');
+
+      await click('Valider mon profil');
+      const put = http.expectOne(`${BASE}/v0/users/me/profile`);
+      expect(put.request.method).toBe('PUT');
+      expect(put.request.headers.get('access-token')).toBe('jeton');
+      expect(put.request.body).toMatchObject({
+        consent: true,
+        mobility_profile: 1,
+        wheelchair_model_id: 'invacare-action-kuschall',
+        wheelchair_width: 0.7,
+      });
+      put.flush({
+        consent: true,
+        mobility_profile: 1,
+        app_profile: 'manual-wheelchair',
+        wheelchair_model_id: 'invacare-action-kuschall',
+        wheelchair_width: 0.7,
+        physical_strength: 1,
+        is_accompanied: false,
+        consent_given_at: '2026-11-23T10:00:00.000Z',
+        updated_at: '2026-11-23T10:00:00.000Z',
+      });
+      await settle();
+      expect(navigate).toHaveBeenCalledWith(['/trip-entry']);
+    });
+
+    it('lets the user type the model and the width without the list', async () => {
+      await connect();
+      await acceptConsent();
+      await choose('Fauteuil manuel');
+      await pick('manual');
+      expect(root.querySelector('.model-field')).not.toBeNull();
+      await type('.model-field input', 'Modèle sur mesure');
+      await type('.width-field input', '0,65');
+      await click('Enregistrer mon profil');
+      expect(text()).toContain('Modèle sur mesure (0,65 m)');
+
+      await click('Valider mon profil');
+      const put = http.expectOne(`${BASE}/v0/users/me/profile`);
+      expect(put.request.body.wheelchair_width).toBe(0.65);
+      expect(put.request.body).not.toHaveProperty('wheelchair_model_id');
+      put.flush({
+        consent: true,
+        mobility_profile: 1,
+        wheelchair_width: 0.65,
+        consent_given_at: '2026-11-23T10:00:00.000Z',
+        updated_at: '2026-11-23T10:00:00.000Z',
+      });
+    });
+
+    it('rejects a manual width outside what the API accepts', async () => {
+      await connect();
+      await acceptConsent();
+      await choose('Fauteuil manuel');
+      await pick('manual');
+      await type('.model-field input', 'Modèle sur mesure');
+      await type('.width-field input', '3');
+      await click('Enregistrer mon profil');
+      expect(text()).toContain(WIDTH_MESSAGE);
+      expect(root.querySelector('.passport')).toBeNull();
+    });
+
+    it('falls back to manual entry when the catalogue is unavailable', async () => {
+      await connect('down');
+      await acceptConsent();
+      await choose('Fauteuil manuel');
+      // Ouvrir la section fauteuil retente le catalogue ; il répond encore en erreur.
+      http
+        .expectOne(`${BASE}/v0/wheelchairs`)
+        .flush({ error: 'down' }, { status: 500, statusText: 'Server Error' });
+      await settle();
+      expect(root.querySelector('#model-select')).toBeNull();
+      expect(root.querySelector('.model-field')).not.toBeNull();
+      expect(root.querySelector('.width-field')).not.toBeNull();
+    });
+
+    it('keeps the local profile and says so when the account save fails', async () => {
+      await connect();
+      await acceptConsent();
+      await choose('Fauteuil manuel');
+      await pick('manual');
+      await type('.model-field input', 'Modèle sur mesure');
+      await click('Enregistrer mon profil');
+      await click('Valider mon profil');
+      http
+        .expectOne(`${BASE}/v0/users/me/profile`)
+        .flush({ error: 'boom' }, { status: 500, statusText: 'Server Error' });
+      await settle();
+      expect(text()).toContain(REMOTE_SAVE_FAILED_MESSAGE);
+      expect(TestBed.inject(MobilityProfileService).profile()).not.toBeNull();
+      expect(navigate).not.toHaveBeenCalled();
+    });
+
+    it('ends the session and offers to sign in again on a 401', async () => {
+      await connect();
+      await acceptConsent();
+      await choose('Fauteuil manuel');
+      await pick('manual');
+      await type('.model-field input', 'Modèle sur mesure');
+      await click('Enregistrer mon profil');
+      await click('Valider mon profil');
+      http
+        .expectOne(`${BASE}/v0/users/me/profile`)
+        .flush({ error: 'expired' }, { status: 401, statusText: 'Unauthorized' });
+      await settle();
+      expect(text()).toContain(SESSION_EXPIRED_MESSAGE);
+      expect(TestBed.inject(SessionService).isAuthenticated()).toBe(false);
+      await click('Me reconnecter');
+      expect(navigate).toHaveBeenCalledWith(['/auth']);
+    });
+  });
+
+  describe('parseWidth', () => {
+    it('accepts a comma or a dot, inside the API bounds', () => {
+      expect(parseWidth('0,65')).toBe(0.65);
+      expect(parseWidth(' 0.7 ')).toBe(0.7);
+      expect(parseWidth('2')).toBe(2);
+    });
+
+    it('rejects text, zero, negatives and widths over 2 m', () => {
+      for (const bad of ['', 'abc', '0', '-1', '2,1', '0,6,5']) {
+        expect(parseWidth(bad)).toBeNull();
+      }
     });
   });
 });
