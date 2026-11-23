@@ -27,3 +27,12 @@ Le ticket #12 demande l'écran de création de compte et de connexion (Figma, pa
 - Quand api-back exposera les routes, il suffira de fournir une implémentation HTTP d'`AccountService` ; l'écran ne change pas. L'écart est à lever par un ticket api-back.
 - La redirection après connexion réussie reste à définir (aucun ticket ne la précise).
 - Le jeton de session (`AccountSession.accessToken`) n'est pas encore stocké ni envoyé aux requêtes : hors périmètre du #12.
+
+## Mise à jour (#85, ticket #84)
+
+api-back propose désormais les routes dans ses PR #117 (`POST /v0/auth/register`, `POST /v0/auth/login`) et #118 (routes `/v0/users/me`), pas encore fusionnées au moment de cette mise à jour. `HttpAccountService` est l'implémentation HTTP annoncée ci-dessus : l'écran `pages/auth` ne change pas.
+
+- `register` envoie `birth_date` en snake_case et ne transmet pas le consentement, qui se donne sur le profil selon le contrat.
+- Erreurs : 409 à l'inscription → `email-already-used` ; 401 à la connexion → `invalid-credentials` ; API injoignable → `unavailable` ; autres cas → `unknown` (message du back conservé).
+- `UnavailableAccountService` reste l'implémentation par défaut des tests.
+- Reste ouvert : conservation du jeton (#84) et réglage CORS pour `localhost:4200` côté api-back.

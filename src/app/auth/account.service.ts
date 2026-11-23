@@ -5,9 +5,9 @@ import { AccountError, AccountSession, LoginRequest, RegisterRequest } from './a
 /**
  * Port du service de compte (création de compte et connexion).
  *
- * api-back n'expose pour l'instant que `GET /v0/auth/anonymous` : aucune route d'inscription ni de
- * connexion n'existe. L'implémentation par défaut est donc explicitement « non disponible ».
- * Quand les routes existeront, fournir une implémentation HTTP à la place (voir docs/decisions/0002).
+ * L'implémentation par défaut est explicitement « non disponible » (utile dans les tests et tant
+ * qu'aucun fournisseur n'est déclaré). L'application déclare `HttpAccountService` dans
+ * `app.config.ts`, branché sur `POST /v0/auth/register` et `POST /v0/auth/login`.
  */
 @Injectable({
   providedIn: 'root',

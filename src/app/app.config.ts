@@ -3,6 +3,8 @@ import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/
 import { provideRouter } from '@angular/router';
 
 import { routes } from './app.routes';
+import { AccountService } from './auth/account.service';
+import { HttpAccountService } from './auth/http-account.service';
 import { provideI18n } from './i18n/i18n';
 
 export const appConfig: ApplicationConfig = {
@@ -10,6 +12,7 @@ export const appConfig: ApplicationConfig = {
     provideBrowserGlobalErrorListeners(),
     provideHttpClient(),
     provideRouter(routes),
+    { provide: AccountService, useExisting: HttpAccountService },
     provideI18n(),
   ],
 };
