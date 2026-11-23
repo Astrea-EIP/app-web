@@ -67,6 +67,10 @@ export const DEFAULT_WHEELCHAIR_WIDTH_M = 0.7;
 
 export const WHEELCHAIR_MODEL_MAX_LENGTH = 80;
 
+/** Bornes de la largeur saisie à la main, en mètres : celles d'api-back (`wheelchair_width` > 0 et ≤ 2). */
+export const WHEELCHAIR_WIDTH_MIN_M = 0.1;
+export const WHEELCHAIR_WIDTH_MAX_M = 2;
+
 export function isWheelchairProfile(id: MobilityProfileId | null): id is WheelchairProfileId {
   return id === 'manual-wheelchair' || id === 'electric-wheelchair';
 }
@@ -75,6 +79,10 @@ export function isWheelchairProfile(id: MobilityProfileId | null): id is Wheelch
 export interface MobilityProfileFormValue {
   profile: MobilityProfileId | null;
   wheelchairModel: string;
+  /** Identifiant du modèle choisi dans le catalogue ; vide pour une saisie manuelle. */
+  wheelchairModelId: string;
+  /** Largeur en mètres : celle du catalogue pour un modèle choisi, saisie sinon. */
+  wheelchairWidthM: number;
   strength: PhysicalStrength;
   accompanied: boolean;
   canClimbStairs: boolean;
@@ -88,6 +96,8 @@ export interface MobilityProfileFormValue {
 export const DEFAULT_FORM_VALUE: MobilityProfileFormValue = {
   profile: null,
   wheelchairModel: '',
+  wheelchairModelId: '',
+  wheelchairWidthM: DEFAULT_WHEELCHAIR_WIDTH_M,
   strength: 'medium',
   accompanied: false,
   canClimbStairs: false,
@@ -105,7 +115,8 @@ export function buildProfileData(value: MobilityProfileFormValue): MobilityProfi
       return {
         profile: value.profile,
         wheelchairModel: value.wheelchairModel.trim(),
-        wheelchairWidthM: DEFAULT_WHEELCHAIR_WIDTH_M,
+        ...(value.wheelchairModelId ? { wheelchairModelId: value.wheelchairModelId } : {}),
+        wheelchairWidthM: value.wheelchairWidthM,
         strength: value.strength,
         accompanied: value.accompanied,
       };
@@ -137,6 +148,8 @@ export function toFormValue(data: MobilityProfileData): MobilityProfileFormValue
       return {
         ...base,
         wheelchairModel: data.wheelchairModel,
+        wheelchairModelId: data.wheelchairModelId ?? '',
+        wheelchairWidthM: data.wheelchairWidthM,
         strength: data.strength,
         accompanied: data.accompanied,
       };

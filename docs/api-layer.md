@@ -59,6 +59,6 @@ this.api.get<Itinerary[]>('v0/itineraries').subscribe({
 | `network`      | 0        | Requête jamais parvenue au serveur.                               |
 | `unknown`      | autres   | Non mappé.                                                        |
 
-Le `kind` `network` couvre aussi un rejet CORS : `api-back` ne déclare aucune politique CORS à ce jour, donc un appel navigateur direct échoue avec le statut `0`.
+Le `kind` `network` couvre aussi un rejet CORS. `api-back` déclare une politique `LocalWeb` pour `http://localhost:4200` (relevé du 23 nov. 2026, par lecture du code et essai en local) : en développement, un appel direct depuis `ng serve` fonctionne. Toute autre origine reste refusée, avec le statut `0`.
 
 Voir `docs/decisions/0003-client-http-erreurs-api.md`.

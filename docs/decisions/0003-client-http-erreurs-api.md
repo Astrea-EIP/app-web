@@ -47,4 +47,4 @@ Sans couche commune, chaque appelant devrait inspecter un `HttpErrorResponse`, d
 
 - `ApiClient` n'est pas encore branché sur `AuthFetcher` (`src/app/auth/`) : ce branchement est hors périmètre et fera l'objet d'un changement séparé.
 - Les appelants qui ont besoin du jeton passent eux-mêmes l'en-tête `access-token` via l'option `headers`.
-- `api-back` ne déclare aucune politique CORS : un appel navigateur direct échoue avec `kind: 'network'` tant que le back-end n'en ajoute pas. Ce point relève du back-end et n'est pas corrigé ici.
+- À l'écriture de cette décision, `api-back` ne déclarait aucune politique CORS. Il déclare désormais une politique `LocalWeb` pour `http://localhost:4200` (relevé du 23 nov. 2026) ; une origine non autorisée échoue toujours avec `kind: 'network'`. Ce point relève du back-end.
