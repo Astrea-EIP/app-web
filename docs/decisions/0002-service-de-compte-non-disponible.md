@@ -35,4 +35,4 @@ api-back propose désormais les routes dans ses PR #117 (`POST /v0/auth/register
 - `register` envoie `birth_date` en snake_case et ne transmet pas le consentement, qui se donne sur le profil selon le contrat.
 - Erreurs : 409 à l'inscription → `email-already-used` ; 401 à la connexion → `invalid-credentials` ; API injoignable → `unavailable` ; autres cas → `unknown` (message du back conservé).
 - `UnavailableAccountService` reste l'implémentation par défaut des tests.
-- Reste ouvert : conservation du jeton (#84) et réglage CORS pour `localhost:4200` côté api-back.
+- Reste ouvert : conservation du jeton (#84, décision 0005). api-back autorise déjà `http://localhost:4200` (politique CORS `LocalWeb`).
