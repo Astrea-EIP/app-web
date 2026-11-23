@@ -32,7 +32,7 @@ this.api.get<TokenResponse>('v0/auth/anonymous');
 this.api.get<Itinerary[]>('v0/itineraries', { headers: { 'access-token': token } });
 ```
 
-Le branchement de `ApiClient` sur le service d'authentification existant (`src/app/auth/`) est hors périmètre pour l'instant.
+`HttpAccountService` (`src/app/auth/`) s'appuie sur `ApiClient` pour `POST v0/auth/register` et `POST v0/auth/login`. Le jeton renvoyé n'est pas encore conservé ni envoyé aux requêtes suivantes : c'est le sujet du ticket #84.
 
 ## Gestion des erreurs
 
