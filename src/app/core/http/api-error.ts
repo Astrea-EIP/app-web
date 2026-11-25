@@ -26,7 +26,14 @@ export interface ApiServerErrorPayload extends ApiErrorPayload {
  * (network failure, CORS rejection, offline).
  */
 export type ApiErrorKind =
-  'validation' | 'unauthorized' | 'not-found' | 'conflict' | 'server' | 'network' | 'unknown';
+  | 'validation'
+  | 'unauthorized'
+  | 'not-found'
+  | 'conflict'
+  | 'rate-limited'
+  | 'server'
+  | 'network'
+  | 'unknown';
 
 /**
  * Normalized error surfaced by every client call, so callers never inspect a
@@ -39,6 +46,8 @@ export interface ApiError {
   readonly message: string;
   /** Correlation id, present on 500 responses from `ExceptionHandlingMiddleware`. */
   readonly errorId?: string;
+  /** Delay asked by the `Retry-After` header of a 429, in seconds. */
+  readonly retryAfterSeconds?: number;
   /** Raw parsed body, kept for diagnostics. */
   readonly body?: unknown;
 }
@@ -48,6 +57,7 @@ const FALLBACK_MESSAGES: Record<ApiErrorKind, string> = {
   unauthorized: 'Authentication is required.',
   'not-found': 'The requested resource was not found.',
   conflict: 'The request conflicts with the current state of the resource.',
+  'rate-limited': 'Too many requests.',
   server: 'The server encountered an error.',
   network: 'The server could not be reached.',
   unknown: 'An unexpected error occurred.',
@@ -75,6 +85,9 @@ export function kindFromStatus(status: number): ApiErrorKind {
   if (status === 409) {
     return 'conflict';
   }
+  if (status === 429) {
+    return 'rate-limited';
+  }
   if (status >= 500) {
     return 'server';
   }
@@ -95,8 +108,34 @@ export function isApiServerErrorPayload(body: unknown): body is ApiServerErrorPa
   return isRecord(body) && typeof body['error'] === 'string' && typeof body['errorId'] === 'string';
 }
 
+/**
+ * Reads a `Retry-After` header: a number of seconds or an HTTP date.
+ * Returns the delay in seconds (never negative), or `undefined` when the value is absent or unreadable.
+ */
+export function parseRetryAfter(
+  value: string | null | undefined,
+  now: number = Date.now(),
+): number | undefined {
+  const raw = value?.trim();
+  if (!raw) {
+    return undefined;
+  }
+  if (/^\d+$/.test(raw)) {
+    return Number(raw);
+  }
+  const date = Date.parse(raw);
+  if (Number.isNaN(date) || /^-?\d/.test(raw)) {
+    return undefined;
+  }
+  return Math.max(0, Math.ceil((date - now) / 1000));
+}
+
 /** Builds a normalized {@link ApiError} from a status code and raw response body. */
-export function createApiError(status: number, body: unknown): ApiError {
+export function createApiError(
+  status: number,
+  body: unknown,
+  retryAfterSeconds?: number,
+): ApiError {
   const kind = kindFromStatus(status);
 
   let message = FALLBACK_MESSAGES[kind];
@@ -110,5 +149,12 @@ export function createApiError(status: number, body: unknown): ApiError {
     errorId = body.errorId;
   }
 
-  return { kind, status, message, ...(errorId ? { errorId } : {}), body };
+  return {
+    kind,
+    status,
+    message,
+    ...(errorId ? { errorId } : {}),
+    ...(retryAfterSeconds !== undefined ? { retryAfterSeconds } : {}),
+    body,
+  };
 }

@@ -3,6 +3,7 @@ import {
   isApiErrorPayload,
   isApiServerErrorPayload,
   kindFromStatus,
+  parseRetryAfter,
 } from './api-error';
 
 describe('kindFromStatus', () => {
@@ -31,6 +32,10 @@ describe('kindFromStatus', () => {
 
   it('maps 409 to conflict', () => {
     expect(kindFromStatus(409)).toBe('conflict');
+  });
+
+  it('maps 429 to rate-limited', () => {
+    expect(kindFromStatus(429)).toBe('rate-limited');
   });
 
   it('falls back to unknown for unmapped statuses', () => {
@@ -116,5 +121,40 @@ describe('createApiError', () => {
 
   it('preserves the status code', () => {
     expect(createApiError(503, null).status).toBe(503);
+  });
+});
+
+describe('parseRetryAfter', () => {
+  const now = Date.parse('2026-11-25T10:00:00Z');
+
+  it('reads a number of seconds', () => {
+    expect(parseRetryAfter('30', now)).toBe(30);
+  });
+
+  it('reads an HTTP date as the seconds left, rounded up', () => {
+    expect(parseRetryAfter('Wed, 25 Nov 2026 10:01:30 GMT', now)).toBe(90);
+  });
+
+  it('never returns a negative delay for a past date', () => {
+    expect(parseRetryAfter('Wed, 25 Nov 2026 09:00:00 GMT', now)).toBe(0);
+  });
+
+  it('ignores a missing or unreadable value', () => {
+    expect(parseRetryAfter(null, now)).toBeUndefined();
+    expect(parseRetryAfter('', now)).toBeUndefined();
+    expect(parseRetryAfter('soon', now)).toBeUndefined();
+    expect(parseRetryAfter('-5', now)).toBeUndefined();
+  });
+});
+
+describe('createApiError with Retry-After', () => {
+  it('keeps the delay of a 429', () => {
+    const error = createApiError(429, null, 12);
+    expect(error.kind).toBe('rate-limited');
+    expect(error.retryAfterSeconds).toBe(12);
+  });
+
+  it('omits the delay when the header is absent', () => {
+    expect(createApiError(429, null)).not.toHaveProperty('retryAfterSeconds');
   });
 });
