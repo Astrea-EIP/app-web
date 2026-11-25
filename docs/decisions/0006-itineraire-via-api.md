@@ -51,11 +51,16 @@ api-back#125 précise que `error` est un message de debug en anglais, sans garan
   Rien n'est écrit dans le stockage du navigateur.
 - `401` : le jeton refusé est oublié (la session du compte est fermée), puis un nouveau jeton
   anonyme sert à un seul nouvel essai. Un second `401` donne l'erreur `unauthorized`.
+- Si la session du compte a été fermée et que le nouvel essai aboutit, le résultat porte
+  `sessionExpired`. La page l'annonce dans une alerte d'information (`role="status"`) : « Ta session
+  a expiré, tu as été déconnecté. Ton trajet a été calculé sans ton compte. »
 - Le genre d'erreur dépend du code HTTP : `400` `invalid-request`, `422` `unprocessable`,
   `429` `rate-limited` (avec le délai `Retry-After`), `500`, réseau ou réponse hors contrat
   `server` (avec `errorId`). `ApiError` gagne le genre `rate-limited` et `retryAfterSeconds`.
 - Écran : un résumé (« Trajet de N points, de (lat ; lng) à (lat ; lng). »). Les points restent
   dans l'état de la page pour la future carte (#13). Aucune liste ni tracé sans maquette.
+- L'aperçu illustratif de la carte n'affiche plus son faux tracé (ligne et repères A et B) : il
+  apparaissait seulement après un calcul, et pouvait donc passer pour le vrai trajet.
 - Le moteur (core-moteur jusqu'à v0.3.1) ne tient pas encore compte du profil : le résumé le dit
   tant que `ENGINE_USES_MOBILITY_PROFILE` vaut `false`.
 
@@ -64,7 +69,7 @@ api-back#125 précise que `error` est un message de debug en anglais, sans garan
 - Les variantes de l'écran 0002 (adresse introuvable sur un champ précis, « zone non couverte »
   et « aucun trajet accessible ») sont fusionnées : un même code HTTP donne un seul message. Pour les
   distinguer à nouveau, il faudra demander à api-back des codes d'erreur stables dans le corps.
-- Après un `401` sur un jeton de compte, l'utilisateur est déconnecté sans message dédié : l'en-tête
-  de l'app n'affiche pas encore l'état de la session.
+- Si le nouvel essai après un `401` sur un jeton de compte échoue aussi, la session est fermée mais
+  seul le message d'erreur s'affiche : la déconnexion n'est annoncée qu'en cas de succès.
 - api-back ne renvoie pas encore de `429` (aucune limite de débit sur `main`) : ce cas n'est vérifié
   que par les tests.
