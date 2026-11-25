@@ -20,6 +20,11 @@ export interface ItineraryPoint {
 export interface ItineraryResult {
   /** Points du trajet, dans l'ordre, du départ à l'arrivée. Vide : aucun trajet à afficher. */
   readonly points: readonly ItineraryPoint[];
+  /**
+   * `true` : le jeton du compte a été refusé (401), la session a été fermée et le trajet a été
+   * calculé avec un jeton anonyme. La page doit l'annoncer.
+   */
+  readonly sessionExpired?: boolean;
 }
 
 /**

@@ -24,7 +24,12 @@ export type TripEntryState =
   | { readonly status: 'idle' }
   | { readonly status: 'loading' }
   /** Les points restent en mémoire de la page pour la future carte (#13). */
-  | { readonly status: 'success'; readonly points: readonly ItineraryPoint[] }
+  | {
+      readonly status: 'success';
+      readonly points: readonly ItineraryPoint[];
+      /** La session du compte a expiré (401) : le trajet a été calculé sans le compte. */
+      readonly sessionExpired: boolean;
+    }
   | { readonly status: 'empty' }
   | {
       readonly status: 'error';
@@ -77,6 +82,10 @@ export class TripEntry {
 
   protected readonly loading = computed(() => this.state().status === 'loading');
   protected readonly engineUsesProfile = ENGINE_USES_MOBILITY_PROFILE;
+  protected readonly sessionExpired = computed(() => {
+    const state = this.state();
+    return state.status === 'success' && state.sessionExpired;
+  });
   protected readonly summary = computed(() => {
     const state = this.state();
     return state.status === 'success' ? summarizeRoute(state.points) : '';
@@ -123,7 +132,11 @@ export class TripEntry {
       });
       this.state.set(
         result.points.length > 0
-          ? { status: 'success', points: result.points }
+          ? {
+              status: 'success',
+              points: result.points,
+              sessionExpired: result.sessionExpired === true,
+            }
           : { status: 'empty' },
       );
     } catch (error) {

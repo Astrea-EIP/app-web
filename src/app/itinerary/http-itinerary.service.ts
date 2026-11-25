@@ -24,6 +24,7 @@ const ITINERARY_PATH = 'v0/itinerary';
  * - Jeton : celui du compte connecté (`SessionService`), sinon un jeton anonyme gardé en mémoire de
  *   ce service, jamais dans le stockage du navigateur (décision 0005).
  * - `401` : jeton oublié (la session du compte est fermée), nouveau jeton anonyme, un seul nouvel essai.
+ *   Si la session a été fermée et que l'essai aboutit, le résultat porte `sessionExpired`.
  * - Le texte `error` de l'API sert au debug (api-back#125) : il est journalisé, jamais affiché.
  */
 @Injectable({ providedIn: 'root' })
@@ -50,8 +51,9 @@ export class HttpItineraryService implements ItineraryService {
         if (!isApiError(error) || error.kind !== 'unauthorized') {
           throw error;
         }
-        this.forget(token);
-        return await this.post(body, await this.token());
+        const sessionExpired = this.forget(token);
+        const result = await this.post(body, await this.token());
+        return sessionExpired ? { ...result, sessionExpired } : result;
       }
     } catch (error) {
       throw toItineraryError(error);
@@ -74,14 +76,19 @@ export class HttpItineraryService implements ItineraryService {
     return this.anonymousToken;
   }
 
-  /** Jeton refusé : un jeton de compte ferme la session (décision 0005), un jeton anonyme est oublié. */
-  private forget(token: string): void {
-    if (token === this.session.accessToken()) {
-      this.session.end();
-    }
+  /**
+   * Jeton refusé : un jeton de compte ferme la session (décision 0005), un jeton anonyme est oublié.
+   * Renvoie `true` si la session du compte a été fermée.
+   */
+  private forget(token: string): boolean {
     if (token === this.anonymousToken) {
       this.anonymousToken = null;
     }
+    if (token === this.session.accessToken()) {
+      this.session.end();
+      return true;
+    }
+    return false;
   }
 }
 

@@ -35,6 +35,11 @@
       </button>
     </form>
 
+    @if (sessionExpired()) {
+      <app-alert tone="info" title="Session expirée">
+        Ta session a expiré, tu as été déconnecté. Ton trajet a été calculé sans ton compte.
+      </app-alert>
+    }
     @if (state().status === 'success') {
       <app-alert tone="info" title="Itinéraire calculé">
         {{ summary() }}

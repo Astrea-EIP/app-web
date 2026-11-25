@@ -98,6 +98,23 @@ describe('TripEntry', () => {
     expect(el.textContent).toContain('ne tient pas encore compte de votre profil de mobilité');
   });
 
+  it('announces that the account session expired when the route was computed without it', async () => {
+    await setup(() => Promise.resolve({ points: POINTS, sessionExpired: true }));
+    await fill('A', 'B');
+    await submit();
+    const status = el.querySelector('app-alert[role="status"]');
+    expect(status?.textContent).toContain(
+      'Ta session a expiré, tu as été déconnecté. Ton trajet a été calculé sans ton compte.',
+    );
+  });
+
+  it('says nothing about the session when it did not expire', async () => {
+    await setup();
+    await fill('A', 'B');
+    await submit();
+    expect(el.textContent).not.toContain('Ta session a expiré');
+  });
+
   it('shows a loading state and ignores a second submit', async () => {
     let resolve!: (r: ItineraryResult) => void;
     await setup(() => new Promise((r) => (resolve = r)));

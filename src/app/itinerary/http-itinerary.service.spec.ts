@@ -130,6 +130,7 @@ describe('HttpItineraryService', () => {
     expect(retry.request.headers.get('access-token')).toBe('anon-2');
     retry.flush({ points: POINTS });
 
+    // Un jeton anonyme refusé ne déconnecte personne : rien à annoncer.
     await expect(result).resolves.toEqual({ points: POINTS });
   });
 
@@ -143,7 +144,7 @@ describe('HttpItineraryService', () => {
     expect(retry.request.headers.get('access-token')).toBe('anon-1');
     retry.flush({ points: POINTS });
 
-    await expect(result).resolves.toEqual({ points: POINTS });
+    await expect(result).resolves.toEqual({ points: POINTS, sessionExpired: true });
   });
 
   it('gives up after a second 401', async () => {
