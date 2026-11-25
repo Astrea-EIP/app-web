@@ -9,8 +9,8 @@ describe('ITINERARY_SERVICE', () => {
   });
 
   it('carries the error kind and details', () => {
-    const error = new ItineraryError('address-not-found', { field: 'destination', address: 'X' });
-    expect(error.kind).toBe('address-not-found');
-    expect(error.details.address).toBe('X');
+    const error = new ItineraryError('server', { errorId: 'abc' });
+    expect(error.kind).toBe('server');
+    expect(error.details.errorId).toBe('abc');
   });
 });

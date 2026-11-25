@@ -113,34 +113,6 @@
   fill: var(--color-surface);
 }
 
-.trip__route {
-  fill: none;
-  stroke: var(--color-primary-strong);
-  stroke-width: 6;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.trip__pin circle {
-  stroke: var(--color-surface);
-  stroke-width: 3;
-}
-
-.trip__pin--start circle {
-  fill: var(--color-primary-strong);
-}
-
-.trip__pin--end circle {
-  fill: var(--color-ink);
-}
-
-.trip__pin text {
-  fill: var(--color-surface);
-  font-family: var(--font-family-body);
-  font-size: 14px;
-  font-weight: 600;
-}
-
 .trip__map-note {
   position: absolute;
   left: var(--spacing-md);
@@ -167,6 +139,11 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg, 12px);
   background: var(--color-surface);
+}
+
+.trip__notice {
+  display: block;
+  margin-top: var(--spacing-xs);
 }
 
 .trip__code {

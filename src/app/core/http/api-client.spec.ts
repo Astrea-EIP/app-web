@@ -188,4 +188,18 @@ describe('ApiClient', () => {
     expect(received?.status).toBe(409);
     expect(received?.message).toBe('Email already used.');
   });
+
+  it('reads the Retry-After header of a 429', () => {
+    let received: ApiError | undefined;
+    client.post('v0/itinerary', {}).subscribe({ error: (e: ApiError) => (received = e) });
+
+    httpMock.expectOne(`${BASE}/v0/itinerary`).flush(null, {
+      status: 429,
+      statusText: 'Too Many Requests',
+      headers: { 'Retry-After': '20' },
+    });
+
+    expect(received?.kind).toBe('rate-limited');
+    expect(received?.retryAfterSeconds).toBe(20);
+  });
 });

@@ -1,7 +1,7 @@
 # 0002 — Port du service d'itinéraire et carte statique (saisie du trajet)
 
 - Date : 2026-11-18
-- Statut : proposée
+- Statut : proposée, partiellement remplacée par 0006 (branchement HTTP)
 - Décideurs : à valider par l'équipe
 - Tickets liés : #14
 

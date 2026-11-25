@@ -3,8 +3,8 @@ import { InjectionToken } from '@angular/core';
 /**
  * Port du service d'itinéraire (POST /v0/itinerary).
  *
- * Le contrat de l'API n'est pas documenté dans ce dépôt : ces types sont PROVISOIRES et ne
- * décrivent que ce dont l'écran de saisie a besoin (voir docs/decisions/0002-port-service-itineraire.md).
+ * L'implémentation HTTP est `HttpItineraryService`, branchée dans `app.config.ts`
+ * (décisions 0002 et 0006).
  */
 export interface ItineraryRequest {
   /** Adresse ou « lat,lng » saisi(e) par l'utilisateur, sans espaces superflus. */
@@ -12,22 +12,38 @@ export interface ItineraryRequest {
   readonly destination: string;
 }
 
-export interface ItineraryResult {
-  /** `false` : le calcul s'est bien passé mais ne renvoie aucun trajet exploitable. */
-  readonly routeFound: boolean;
+export interface ItineraryPoint {
+  readonly lat: number;
+  readonly lng: number;
 }
 
+export interface ItineraryResult {
+  /** Points du trajet, dans l'ordre, du départ à l'arrivée. Vide : aucun trajet à afficher. */
+  readonly points: readonly ItineraryPoint[];
+  /**
+   * `true` : le jeton du compte a été refusé (401), la session a été fermée et le trajet a été
+   * calculé avec un jeton anonyme. La page doit l'annoncer.
+   */
+  readonly sessionExpired?: boolean;
+}
+
+/**
+ * Le message affiché dépend du code HTTP, jamais du texte `error` de l'API, qui sert au debug
+ * (api-back#125, décision 0006).
+ */
 export type ItineraryErrorKind =
-  | 'address-not-found' // 400 : adresse non résolue
-  | 'uncovered-zone' // 422 : zone non couverte
-  | 'no-accessible-route' // 422 : aucun trajet accessible pour ce profil
-  | 'server'; // 500 et erreurs réseau
+  | 'no-profile' // aucun profil de mobilité enregistré : l'API n'est pas appelée
+  | 'invalid-request' // 400 : saisie invalide ou adresse introuvable
+  | 'unprocessable' // 422 : zone non couverte ou aucun trajet pour ce profil
+  | 'unauthorized' // 401 encore après un nouveau jeton
+  | 'rate-limited' // 429
+  | 'server'; // 500, erreur réseau ou réponse hors contrat
 
 export interface ItineraryErrorDetails {
-  readonly field?: 'origin' | 'destination';
-  readonly address?: string;
-  /** Identifiant renvoyé par le serveur pour le support (affiché tel quel). */
-  readonly errorCode?: string;
+  /** `errorId` d'une 500, à communiquer pour le signalement (affiché tel quel). */
+  readonly errorId?: string;
+  /** Délai demandé par `Retry-After` sur une 429, en secondes. */
+  readonly retryAfterSeconds?: number;
 }
 
 export class ItineraryError extends Error {

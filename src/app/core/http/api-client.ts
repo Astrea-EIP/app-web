@@ -3,7 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable, catchError, throwError } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
-import { ApiError, createApiError } from './api-error';
+import { ApiError, createApiError, parseRetryAfter } from './api-error';
 
 /** Per-call options. */
 export interface RequestOptions {
@@ -73,7 +73,13 @@ export class ApiClient {
     if (error instanceof HttpErrorResponse) {
       // status 0 means the request never reached the server: network failure,
       // CORS rejection, or the API being unreachable.
-      return throwError(() => createApiError(error.status, error.error));
+      return throwError(() =>
+        createApiError(
+          error.status,
+          error.error,
+          parseRetryAfter(error.headers?.get('Retry-After')),
+        ),
+      );
     }
 
     // A non-HTTP failure (e.g. a parsing error) is `unknown`, not `network`:
