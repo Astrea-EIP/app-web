@@ -12,6 +12,7 @@ import {
   ITINERARY_SERVICE,
   ItineraryError,
   ItineraryErrorKind,
+  ItineraryPoint,
 } from '../../itinerary/itinerary.service';
 import { Alert } from '../../shared/alert/alert';
 import { Button } from '../../shared/button/button';
@@ -22,15 +23,34 @@ type Field = 'origin' | 'destination';
 export type TripEntryState =
   | { readonly status: 'idle' }
   | { readonly status: 'loading' }
-  | { readonly status: 'success' }
+  /** Les points restent en mémoire de la page pour la future carte (#13). */
+  | { readonly status: 'success'; readonly points: readonly ItineraryPoint[] }
   | { readonly status: 'empty' }
   | {
       readonly status: 'error';
       readonly kind: ItineraryErrorKind;
-      readonly field?: Field;
-      readonly address?: string;
-      readonly errorCode?: string;
+      readonly errorId?: string;
+      readonly retryAfterSeconds?: number;
     };
+
+/**
+ * Le moteur (core-moteur jusqu'à v0.3.1) ne tient pas encore compte du profil de mobilité :
+ * limite documentée dans `docs/api.md` d'api-back. Passer à `true` quand ce sera le cas.
+ */
+export const ENGINE_USES_MOBILITY_PROFILE = false;
+
+const COORDINATE = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 5 });
+
+/** « (48,8566 ; 2,3522) » : le point-virgule évite la confusion avec la virgule décimale. */
+export function formatPoint({ lat, lng }: ItineraryPoint): string {
+  return `(${COORDINATE.format(lat)} ; ${COORDINATE.format(lng)})`;
+}
+
+/** « Trajet de 42 points, de (…) à (…). » */
+export function summarizeRoute(points: readonly ItineraryPoint[]): string {
+  const count = `${points.length} ${points.length > 1 ? 'points' : 'point'}`;
+  return `Trajet de ${count}, de ${formatPoint(points[0])} à ${formatPoint(points[points.length - 1])}.`;
+}
 
 /** Refuse les valeurs vides ou faites uniquement d'espaces. */
 export function notBlank(control: AbstractControl<string>): ValidationErrors | null {
@@ -56,6 +76,11 @@ export class TripEntry {
   private readonly submitted = signal(false);
 
   protected readonly loading = computed(() => this.state().status === 'loading');
+  protected readonly engineUsesProfile = ENGINE_USES_MOBILITY_PROFILE;
+  protected readonly summary = computed(() => {
+    const state = this.state();
+    return state.status === 'success' ? summarizeRoute(state.points) : '';
+  });
   /** Texte lu par les lecteurs d'écran (zone `aria-live` polie). */
   protected readonly liveMessage = computed(() => {
     const state = this.state();
@@ -66,10 +91,6 @@ export class TripEntry {
   });
 
   protected fieldError(field: Field): string | null {
-    const state = this.state();
-    if (state.status === 'error' && state.kind === 'address-not-found' && state.field === field) {
-      return `Impossible de résoudre l’adresse « ${state.address ?? this.form.controls[field].value.trim()} » en coordonnées. Vérifiez l’orthographe ou utilisez le format « lat,lng ».`;
-    }
     const control = this.form.controls[field];
     if ((control.touched || this.submitted()) && control.invalid) {
       return field === 'origin'
@@ -81,7 +102,7 @@ export class TripEntry {
 
   protected errorState() {
     const state = this.state();
-    return state.status === 'error' && state.kind !== 'address-not-found' ? state : null;
+    return state.status === 'error' ? state : null;
   }
 
   protected async submit(): Promise<void> {
@@ -100,20 +121,19 @@ export class TripEntry {
         origin: origin.trim(),
         destination: destination.trim(),
       });
-      this.state.set({ status: result.routeFound ? 'success' : 'empty' });
+      this.state.set(
+        result.points.length > 0
+          ? { status: 'success', points: result.points }
+          : { status: 'empty' },
+      );
     } catch (error) {
       const known = error instanceof ItineraryError ? error : null;
       this.state.set({
         status: 'error',
         kind: known?.kind ?? 'server',
-        field:
-          known?.details.field ?? (known?.kind === 'address-not-found' ? 'destination' : undefined),
-        address: known?.details.address,
-        errorCode: known?.details.errorCode,
+        errorId: known?.details.errorId,
+        retryAfterSeconds: known?.details.retryAfterSeconds,
       });
-      if (known?.kind === 'address-not-found') {
-        this.focusField(known.details.field ?? 'destination');
-      }
     }
   }
 

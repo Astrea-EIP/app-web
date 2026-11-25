@@ -37,7 +37,13 @@
 
     @if (state().status === 'success') {
       <app-alert tone="info" title="Itinéraire calculé">
-        Itinéraire adapté à votre profil de mobilité.
+        {{ summary() }}
+        @if (!engineUsesProfile) {
+          <span class="trip__notice">
+            Le calcul ne tient pas encore compte de votre profil de mobilité : vérifiez
+            l’accessibilité du trajet avant de partir.
+          </span>
+        }
       </app-alert>
     }
     @if (state().status === 'empty') {
@@ -101,26 +107,61 @@
     @if (errorState(); as error) {
       <div class="trip__message">
         @switch (error.kind) {
-          @case ('uncovered-zone') {
-            <app-alert tone="error" title="Zone non couverte">
-              Le point d’arrivée est en dehors de la zone couverte par la carte, ou trop loin d’un
-              chemin.
+          @case ('no-profile') {
+            <app-alert tone="error" title="Profil de mobilité à renseigner">
+              Pour calculer un itinéraire adapté, renseignez d’abord votre profil de mobilité.
+            </app-alert>
+            <a appButton variant="secondary" routerLink="/profile">Renseigner mon profil</a>
+          }
+          @case ('invalid-request') {
+            <app-alert tone="error" title="Départ ou arrivée non reconnu">
+              Vérifiez l’orthographe des adresses, ou saisissez des coordonnées au format « lat,lng
+              » avec un point décimal (par exemple 48.8566,2.3522).
             </app-alert>
             <button appButton type="button" variant="secondary" (click)="editSearch()">
               Modifier la recherche
             </button>
           }
-          @case ('no-accessible-route') {
-            <app-alert tone="error" title="Aucun trajet accessible">
-              Aucun trajet adapté à ce profil de mobilité n’a été trouvé entre ces deux points.
+          @case ('unprocessable') {
+            <app-alert tone="error" title="Aucun itinéraire possible">
+              Aucun trajet adapté à votre profil n’a été trouvé entre ces deux points. Un point est
+              peut-être en dehors de la zone couverte par la carte, ou trop loin d’un chemin.
             </app-alert>
+            <button appButton type="button" variant="secondary" (click)="editSearch()">
+              Modifier la recherche
+            </button>
             <a appButton variant="secondary" routerLink="/profile">Modifier mon profil</a>
+          }
+          @case ('rate-limited') {
+            <app-alert tone="error" title="Trop de demandes">
+              Vous avez lancé beaucoup de calculs en peu de temps.
+              @if (error.retryAfterSeconds) {
+                Réessayez dans {{ error.retryAfterSeconds }}
+                {{ error.retryAfterSeconds > 1 ? 'secondes' : 'seconde' }}.
+              } @else {
+                Réessayez dans un instant.
+              }
+            </app-alert>
+            <button appButton type="button" variant="secondary" (click)="submit()">
+              Réessayer
+            </button>
+          }
+          @case ('unauthorized') {
+            <app-alert tone="error" title="Accès au service refusé">
+              Le serveur n’a pas accepté la demande, même après une nouvelle connexion. Réessayez
+              dans un instant.
+            </app-alert>
+            <button appButton type="button" variant="secondary" (click)="submit()">
+              Réessayer
+            </button>
           }
           @default {
             <app-alert tone="error" title="Un problème est survenu">
               Nous n’avons pas pu calculer l’itinéraire. Réessayez dans un instant.
-              @if (error.errorCode) {
-                <span class="trip__code">Code d’erreur : {{ error.errorCode }}</span>
+              @if (error.errorId) {
+                <span class="trip__code">
+                  Pour signaler le problème, indiquez ce code : {{ error.errorId }}
+                </span>
               }
             </app-alert>
             <button appButton type="button" variant="secondary" (click)="submit()">

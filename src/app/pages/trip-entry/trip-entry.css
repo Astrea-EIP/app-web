@@ -169,6 +169,11 @@
   background: var(--color-surface);
 }
 
+.trip__notice {
+  display: block;
+  margin-top: var(--spacing-xs);
+}
+
 .trip__code {
   display: block;
   margin-top: var(--spacing-xs);
