@@ -88,7 +88,9 @@ describe('TripEntry', () => {
     expect(el.textContent).toContain(
       'Trajet de 3 points, de (48,8566 ; 2,3522) à (48,8606 ; 2,3376).',
     );
-    expect(el.querySelector('.trip__route')).not.toBeNull();
+    // Le tracé de l'aperçu est illustratif : il ne doit pas passer pour le trajet calculé.
+    expect(el.querySelector('.trip__route')).toBeNull();
+    expect(el.querySelector('.trip__pin')).toBeNull();
   });
 
   it('says that the engine does not use the mobility profile yet', async () => {
